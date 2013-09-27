@@ -1,7 +1,7 @@
 package com.timepath.steam.net;
 
 import com.timepath.DateUtils;
-import com.timepath.backports.javax.swing.SwingWorker;
+import javax.swing.SwingWorker;
 import com.timepath.steam.SteamID;
 import com.timepath.steam.SteamUtils;
 import com.timepath.steam.io.VDF;
