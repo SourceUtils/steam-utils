@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JOptionPane;
 
 /**
  *
@@ -99,6 +100,10 @@ public class ArchiveHost {
         } catch(FileNotFoundException ex) {
             Logger.getLogger(ArchiveHost.class.getName()).log(Level.SEVERE, null, ex);
         }
+        JOptionPane.showMessageDialog(null, "Files hosted",
+                                                                  "Navigate to ftp://localhost:2121. The files will stop being hosted when you close all running instances",
+                                                                  JOptionPane.INFORMATION_MESSAGE,
+                                                                  null);
     }
 
 }
