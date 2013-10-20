@@ -11,11 +11,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.JFrame;
-import javax.swing.JScrollPane;
-import javax.swing.JTabbedPane;
-import javax.swing.JTextArea;
-import javax.swing.SwingWorker;
+import javax.swing.*;
 
 /**
  *
@@ -50,7 +46,7 @@ public class ServerTest {
                     VDF vdf = new VDF();
                     vdf.readExternal(new FileInputStream(new File(SteamUtils.getSteam(),
                                                                   "userdata/" + user.getUID().split(
-                            ":")[2] + "/7/remote/serverbrowser_hist.vdf")));
+                        ":")[2] + "/7/remote/serverbrowser_hist.vdf")));
                     VDFNode v = vdf.getRoot().get("Filters");
                     VDFNode favorites = v.get("Favorites");
                     VDFNode history = v.get("History");
@@ -73,7 +69,8 @@ public class ServerTest {
                         hist.append("History " + historyItem.getKey() + "\n");
                         hist.append("Name: " + historyItem.get("name").getValue() + "\n");
                         hist.append("Address: " + historyItem.get("address").getValue() + "\n");
-                        long newLastPlayed = Long.parseLong(historyItem.get("lastplayed").getValue());
+                        long newLastPlayed = Long
+                            .parseLong(historyItem.get("lastplayed").getValue());
                         if(newLastPlayed < lastPlayed) {
                             hist.append("Out of order" + "\n");
                         }

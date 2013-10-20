@@ -20,19 +20,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.DefaultCellEditor;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.MutableTreeNode;
-import javax.swing.tree.TreePath;
-import javax.swing.tree.TreeSelectionModel;
+import javax.swing.tree.*;
 
 /**
  *
@@ -107,10 +98,6 @@ public class ArchiveExplorer extends javax.swing.JFrame {
             LOG.log(Level.WARNING, "Unrecognised archive: {0}", f);
             return;
         }
-        if(a == null) {
-            LOG.log(Level.WARNING, "Unable to load {0}", f);
-            return;
-        }
         addArchive(a);
     }
 
@@ -119,9 +106,9 @@ public class ArchiveExplorer extends javax.swing.JFrame {
         DefaultMutableTreeNode node = new DefaultMutableTreeNode(a);
         a.analyze(node, false);
         tree.insertNodeInto(
-                node,
-                (MutableTreeNode) tree.getRoot(),
-                tree.getChildCount(tree.getRoot()));
+            node,
+            (MutableTreeNode) tree.getRoot(),
+            tree.getChildCount(tree.getRoot()));
         tree.reload();
     }
 
@@ -282,18 +269,18 @@ public class ArchiveExplorer extends javax.swing.JFrame {
     private void open(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_open
         try {
             File[] fs = new NativeFileChooser()
-                    .setParent(this)
-                    .setTitle("Open archive")
-                    .setDirectory(SteamUtils.getSteamApps())
-                    .setMultiSelectionEnabled(true)
-                    .addFilter(new ExtensionFilter("GCF files", ".gcf"))
-                    .addFilter(new ExtensionFilter("VPK directory files", "_dir.vpk"))
-                    .addFilter(new ExtensionFilter("VPK files", ".vpk"))
-                    .choose();
+                .setParent(this)
+                .setTitle("Open archive")
+                .setDirectory(SteamUtils.getSteamApps())
+                .setMultiSelectionEnabled(true)
+                .addFilter(new ExtensionFilter("GCF files", ".gcf"))
+                .addFilter(new ExtensionFilter("VPK directory files", "_dir.vpk"))
+                .addFilter(new ExtensionFilter("VPK files", ".vpk"))
+                .choose();
             if(fs == null) {
                 return;
             }
-            for (File f : fs) {
+            for(File f : fs) {
                 if(f == null) {
                     LOG.info("File is null");
                     return;
@@ -337,12 +324,12 @@ public class ArchiveExplorer extends javax.swing.JFrame {
     private void jPopupMenuItem1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jPopupMenuItem1ActionPerformed
         try {
             File[] outs = new NativeFileChooser()
-                    .setParent(this)
-                    .setTitle("Select extraction directory")
-                    .setMultiSelectionEnabled(false)
-                    .setDialogType(BaseFileChooser.DialogType.OPEN_DIALOG)
-                    .setFileMode(BaseFileChooser.FileMode.DIRECTORIES_ONLY)
-                    .choose();
+                .setParent(this)
+                .setTitle("Select extraction directory")
+                .setMultiSelectionEnabled(false)
+                .setDialogType(BaseFileChooser.DialogType.OPEN_DIALOG)
+                .setFileMode(BaseFileChooser.FileMode.DIRECTORIES_ONLY)
+                .choose();
             if(outs == null) {
                 return;
             }
@@ -367,7 +354,8 @@ public class ArchiveExplorer extends javax.swing.JFrame {
             if(clicked == null) {
                 return;
             }
-            if(jTree1.getSelectionPaths() == null || !Arrays.asList(jTree1.getSelectionPaths()).contains(
+            if(jTree1.getSelectionPaths() == null || !Arrays.asList(jTree1.getSelectionPaths())
+                .contains(
                     clicked)) {
                 jTree1.setSelectionPath(clicked);
             }
@@ -377,7 +365,8 @@ public class ArchiveExplorer extends javax.swing.JFrame {
                 if(!(p.getLastPathComponent() instanceof DefaultMutableTreeNode)) {
                     return;
                 }
-                Object userObject = ((DefaultMutableTreeNode) p.getLastPathComponent()).getUserObject();
+                Object userObject = ((DefaultMutableTreeNode) p.getLastPathComponent())
+                    .getUserObject();
                 if(userObject instanceof DirectoryEntry) {
                     selectedArchive = null;
                     toExtract.add((DirectoryEntry) userObject);
