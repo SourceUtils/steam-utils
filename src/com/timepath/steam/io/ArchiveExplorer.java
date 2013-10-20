@@ -93,7 +93,7 @@ public class ArchiveExplorer extends javax.swing.JFrame {
         if(ext.equals("gcf")) {
             a = new GCF(f);
         } else if(ext.equals("vpk")) {
-            a = new VPK(f);
+            a = VPK.loadArchive(f);
         } else {
             LOG.log(Level.WARNING, "Unrecognised archive: {0}", f);
             return;
