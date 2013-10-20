@@ -14,13 +14,10 @@ import javax.swing.JOptionPane;
 
 /**
  *
- * @author timepath
+ * @author TimePath
  */
 public class ArchiveHost {
 
-    /**
-     * TODO: Merge valve package formats with same interface
-     */
     public static class ArchiveFile extends VFile {
 
         DirectoryEntry de;
@@ -105,5 +102,6 @@ public class ArchiveHost {
                                                                   JOptionPane.INFORMATION_MESSAGE,
                                                                   null);
     }
+    private static final Logger LOG = Logger.getLogger(ArchiveHost.class.getName());
 
 }

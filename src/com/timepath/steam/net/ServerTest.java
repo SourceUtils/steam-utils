@@ -1,7 +1,6 @@
 package com.timepath.steam.net;
 
 import com.timepath.DateUtils;
-import javax.swing.SwingWorker;
 import com.timepath.steam.SteamID;
 import com.timepath.steam.SteamUtils;
 import com.timepath.steam.io.VDF;
@@ -16,12 +15,15 @@ import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
+import javax.swing.SwingWorker;
 
 /**
  *
- * @author timepath
+ * @author TimePath
  */
 public class ServerTest {
+
+    private static final Logger LOG = Logger.getLogger(ServerTest.class.getName());
 
     public static void main(String... args) {
         try {
@@ -107,7 +109,5 @@ public class ServerTest {
             LOG.log(Level.SEVERE, null, ex);
         }
     }
-
-    private static final Logger LOG = Logger.getLogger(ServerTest.class.getName());
 
 }

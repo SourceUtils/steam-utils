@@ -36,7 +36,7 @@ import javax.swing.tree.TreeSelectionModel;
 
 /**
  *
- * @author timepath
+ * @author TimePath
  */
 @SuppressWarnings("serial")
 public class ArchiveExplorer extends javax.swing.JFrame {
@@ -293,9 +293,7 @@ public class ArchiveExplorer extends javax.swing.JFrame {
             if(fs == null) {
                 return;
             }
-            for(int i = 0; i < fs.length; i++) {
-                File f = fs[i];
-
+            for (File f : fs) {
                 if(f == null) {
                     LOG.info("File is null");
                     return;
