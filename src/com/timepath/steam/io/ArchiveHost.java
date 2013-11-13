@@ -34,7 +34,7 @@ public class ArchiveHost {
                 LOG.log(Level.SEVERE, null, ex);
             }
             try {
-                FTPFS ftp = new FTPFS();
+                FTPFS ftp = FTPFS.create();
                 ftp.addAll(files);
                 new Thread(ftp).start();
             } catch(IOException ex) {
