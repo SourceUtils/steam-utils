@@ -2,6 +2,7 @@ package com.timepath.steam.io;
 
 import com.timepath.FileUtils;
 import com.timepath.io.utils.ViewableData;
+import com.timepath.plaf.OS;
 import com.timepath.plaf.x.filechooser.BaseFileChooser;
 import com.timepath.plaf.x.filechooser.BaseFileChooser.ExtensionFilter;
 import com.timepath.plaf.x.filechooser.NativeFileChooser;
@@ -13,6 +14,7 @@ import com.timepath.steam.io.storage.util.Archive;
 import com.timepath.steam.io.storage.util.DirectoryEntry;
 import com.timepath.swing.DirectoryTreeCellRenderer;
 import java.awt.Component;
+import java.awt.Desktop;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -381,26 +383,41 @@ public class ArchiveExplorer extends javax.swing.JFrame {
     }//GEN-LAST:event_jTree1MouseClicked
 
     private void jTable1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jTable1MouseClicked
+        int row = jTable1.rowAtPoint(evt.getPoint());
+        if(row == -1) {
+            return;
+        }
+        int[] selectedRows = jTable1.getSelectedRows();
+        Arrays.sort(selectedRows);
+        if(Arrays.binarySearch(selectedRows, row) < 0) {
+            jTable1.setRowSelectionInterval(row, row);
+        }
+        toExtract.clear();
+        int[] selected = jTable1.getSelectedRows();
+        for(int r : selected) {
+            Object userObject = table.getValueAt(jTable1.convertRowIndexToModel(r), 0);
+            if(userObject instanceof DirectoryEntry) {
+                toExtract.add((DirectoryEntry) userObject);
+            }
+        }
+        extractablesUpdated();
         if(SwingUtilities.isRightMouseButton(evt)) {
-            int row = jTable1.rowAtPoint(evt.getPoint());
-            if(row == -1) {
-                return;
-            }
-            int[] selectedRows = jTable1.getSelectedRows();
-            Arrays.sort(selectedRows);
-            if(Arrays.binarySearch(selectedRows, row) < 0) {
-                jTable1.setRowSelectionInterval(row, row);
-            }
-            toExtract.clear();
-            int[] selected = jTable1.getSelectedRows();
-            for(int r : selected) {
-                Object userObject = table.getValueAt(jTable1.convertRowIndexToModel(r), 0);
-                if(userObject instanceof DirectoryEntry) {
-                    toExtract.add((DirectoryEntry) userObject);
-                }
-            }
-            extractablesUpdated();
             jPopupMenu1.show(jTable1, evt.getX(), evt.getY());
+        } else if(SwingUtilities.isLeftMouseButton(evt) && evt.getClickCount() >= 2) {
+            DirectoryEntry e = toExtract.get(0);
+            File dir = new File(System.getProperty("java.io.tmpdir"));
+            File f = new File(dir, e.getName());
+            try {
+                e.extract(dir);
+                f.deleteOnExit();
+                if(!OS.isLinux()) {
+                    Desktop.getDesktop().open(f);
+                } else {
+                    Runtime.getRuntime().exec(new String[] {"xdg-open", f.getPath()});
+                }
+            } catch(IOException ex) {
+                Logger.getLogger(ArchiveExplorer.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
     }//GEN-LAST:event_jTable1MouseClicked
 
