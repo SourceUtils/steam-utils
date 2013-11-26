@@ -3,8 +3,8 @@ package com.timepath.steam.net;
 import com.timepath.DateUtils;
 import com.timepath.steam.SteamID;
 import com.timepath.steam.SteamUtils;
-import com.timepath.steam.io.VDF;
-import com.timepath.steam.io.util.VDFNode;
+import com.timepath.steam.io.VDF1;
+import com.timepath.steam.io.util.VDFNode1;
 import java.awt.Dimension;
 import java.io.File;
 import java.io.FileInputStream;
@@ -43,16 +43,16 @@ public class ServerTest {
                 @Override
                 protected Void doInBackground() throws Exception {
                     SteamID user = SteamUtils.getUser();
-                    VDF vdf = new VDF();
+                    VDF1 vdf = new VDF1();
                     vdf.readExternal(new FileInputStream(new File(SteamUtils.getSteam(),
                                                                   "userdata/" + user.getUID().split(
                         ":")[2] + "/7/remote/serverbrowser_hist.vdf")));
-                    VDFNode v = vdf.getRoot().get("Filters");
-                    VDFNode favorites = v.get("Favorites");
-                    VDFNode history = v.get("History");
+                    VDFNode1 v = vdf.getRoot().get("Filters");
+                    VDFNode1 favorites = v.get("Favorites");
+                    VDFNode1 history = v.get("History");
                     long lastPlayed = 0;
                     for(int i = 0; i < favorites.getChildCount(); i++) {
-                        VDFNode favorite = favorites.get(i);
+                        VDFNode1 favorite = favorites.get(i);
                         favs.append("Favorite " + favorite.getKey() + "\n");
                         favs.append("Name: " + favorite.get("name").getValue() + "\n");
                         favs.append("Address: " + favorite.get("address").getValue() + "\n");
@@ -65,7 +65,7 @@ public class ServerTest {
                     }
                     lastPlayed = 0;
                     for(int i = 0; i < history.getChildCount(); i++) {
-                        VDFNode historyItem = history.get(i);
+                        VDFNode1 historyItem = history.get(i);
                         hist.append("History " + historyItem.getKey() + "\n");
                         hist.append("Name: " + historyItem.get("name").getValue() + "\n");
                         hist.append("Address: " + historyItem.get("address").getValue() + "\n");
