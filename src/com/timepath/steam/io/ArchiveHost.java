@@ -1,8 +1,7 @@
 package com.timepath.steam.io;
 
 import com.timepath.steam.io.storage.ACF;
-import com.timepath.steam.io.util.VFileDirectoryEntryAdapter;
-import com.timepath.vfs.VFile;
+import com.timepath.vfs.SimpleVFile;
 import com.timepath.vfs.ftp.FTPFS;
 import com.timepath.vfs.http.HTTPFS;
 import java.io.FileNotFoundException;
@@ -25,17 +24,17 @@ public class ArchiveHost {
         int appID = 440;
         try {
             final ACF acf = ACF.fromManifest(appID);
-            final Collection<VFile> files = new VFileDirectoryEntryAdapter(acf.getRoot()).list();
+            Collection<? extends SimpleVFile> files = acf.list();
             try {
                 HTTPFS http = new HTTPFS();
-                http.addAll(files);
+                http.copyFrom(files);
                 new Thread(http).start();
             } catch(IOException ex) {
                 LOG.log(Level.SEVERE, null, ex);
             }
             try {
                 FTPFS ftp = FTPFS.create();
-                ftp.addAll(files);
+                ftp.copyFrom(files);
                 new Thread(ftp).start();
             } catch(IOException ex) {
                 LOG.log(Level.SEVERE, null, ex);

@@ -10,9 +10,9 @@ import com.timepath.steam.SteamUtils;
 import com.timepath.steam.io.storage.ACF;
 import com.timepath.steam.io.storage.GCF;
 import com.timepath.steam.io.storage.VPK;
-import com.timepath.steam.io.storage.util.Archive;
-import com.timepath.steam.io.storage.util.DirectoryEntry;
+import com.timepath.steam.io.storage.util.ExtendedVFile;
 import com.timepath.swing.DirectoryTreeCellRenderer;
+import com.timepath.vfs.SimpleVFile;
 import java.awt.Component;
 import java.awt.Desktop;
 import java.io.File;
@@ -34,7 +34,7 @@ import javax.swing.tree.*;
 @SuppressWarnings("serial")
 public class ArchiveExplorer extends javax.swing.JFrame {
 
-    private ArrayList<Archive> archives = new ArrayList<Archive>();
+    private ArrayList<ExtendedVFile> archives = new ArrayList<ExtendedVFile>();
 
     private final DefaultTreeModel tree;
 
@@ -81,8 +81,8 @@ public class ArchiveExplorer extends javax.swing.JFrame {
         public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected,
                                                      int row, int column) {
             Object val = table.getValueAt(row, 0);
-            if(val instanceof DirectoryEntry) {
-                directoryChanged((DirectoryEntry) val);
+            if(val instanceof ExtendedVFile) {
+                directoryChanged((ExtendedVFile) val);
             }
             return null;
         }
@@ -91,7 +91,7 @@ public class ArchiveExplorer extends javax.swing.JFrame {
 
     public void load(File f) throws IOException {
         String ext = FileUtils.extension(f);
-        Archive a;
+        ExtendedVFile a;
         if(ext.equals("gcf")) {
             a = new GCF(f);
         } else if(ext.equals("vpk")) {
@@ -103,7 +103,7 @@ public class ArchiveExplorer extends javax.swing.JFrame {
         addArchive(a);
     }
 
-    private void addArchive(Archive a) {
+    private void addArchive(ExtendedVFile a) {
         archives.add(a);
         DefaultMutableTreeNode node = new DefaultMutableTreeNode(a);
         a.analyze(node, false);
@@ -305,19 +305,16 @@ public class ArchiveExplorer extends javax.swing.JFrame {
             return;
         }
         Object obj = ((DefaultMutableTreeNode) node).getUserObject();
-        DirectoryEntry dir = null;
-        if(obj instanceof Archive) {
-            dir = ((Archive) obj).getRoot();
-        }
-        if(obj instanceof DirectoryEntry) {
-            dir = (DirectoryEntry) obj;
+        ExtendedVFile dir = null;
+        if(obj instanceof ExtendedVFile) {
+            dir = (ExtendedVFile) obj;
         }
         if(dir == null) {
             return;
         }
         directoryChanged(dir);
     }//GEN-LAST:event_directoryChanged
-    private ArrayList<DirectoryEntry> toExtract = new ArrayList<DirectoryEntry>();
+    private ArrayList<ExtendedVFile> toExtract = new ArrayList<ExtendedVFile>();
 
     private void extractablesUpdated() {
         jPopupMenuItem1.setEnabled(!toExtract.isEmpty());
@@ -336,7 +333,7 @@ public class ArchiveExplorer extends javax.swing.JFrame {
                 return;
             }
             File out = outs[0];
-            for(DirectoryEntry e : toExtract) {
+            for(ExtendedVFile e : toExtract) {
                 try {
                     e.extract(out);
                 } catch(IOException ex) {
@@ -348,7 +345,7 @@ public class ArchiveExplorer extends javax.swing.JFrame {
             Logger.getLogger(ArchiveExplorer.class.getName()).log(Level.SEVERE, null, ex);
         }
     }//GEN-LAST:event_jPopupMenuItem1ActionPerformed
-    private Archive selectedArchive;
+    private ExtendedVFile selectedArchive;
 
     private void jTree1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jTree1MouseClicked
         if(SwingUtilities.isRightMouseButton(evt)) {
@@ -369,12 +366,9 @@ public class ArchiveExplorer extends javax.swing.JFrame {
                 }
                 Object userObject = ((DefaultMutableTreeNode) p.getLastPathComponent())
                     .getUserObject();
-                if(userObject instanceof DirectoryEntry) {
-                    selectedArchive = null;
-                    toExtract.add((DirectoryEntry) userObject);
-                } else if(userObject instanceof Archive) {
-                    selectedArchive = (Archive) userObject;
-                    toExtract.add(selectedArchive.getRoot());
+                if(userObject instanceof ExtendedVFile) {
+                    selectedArchive = (ExtendedVFile) userObject;
+                    toExtract.add(selectedArchive);
                 }
             }
             extractablesUpdated();
@@ -396,15 +390,15 @@ public class ArchiveExplorer extends javax.swing.JFrame {
         int[] selected = jTable1.getSelectedRows();
         for(int r : selected) {
             Object userObject = table.getValueAt(jTable1.convertRowIndexToModel(r), 0);
-            if(userObject instanceof DirectoryEntry) {
-                toExtract.add((DirectoryEntry) userObject);
+            if(userObject instanceof ExtendedVFile) {
+                toExtract.add((ExtendedVFile) userObject);
             }
         }
         extractablesUpdated();
         if(SwingUtilities.isRightMouseButton(evt)) {
             jPopupMenu1.show(jTable1, evt.getX(), evt.getY());
         } else if(SwingUtilities.isLeftMouseButton(evt) && evt.getClickCount() >= 2) {
-            DirectoryEntry e = toExtract.get(0);
+            ExtendedVFile e = toExtract.get(0);
             File dir = new File(System.getProperty("java.io.tmpdir"));
             File f = new File(dir, e.getName());
             try {
@@ -436,7 +430,7 @@ public class ArchiveExplorer extends javax.swing.JFrame {
             title = selectedArchive.toString();
 //            message = "V" + selectedArchive.header.applicationVersion + "\n";
         } else {
-            DirectoryEntry last = toExtract.get(toExtract.size() - 1);
+            ExtendedVFile last = toExtract.get(toExtract.size() - 1);
             title = last.getName();
             message += "Entry: " + last.getAbsoluteName() + "\n";
             message += last.getChecksum() + " vs " + last.calculateChecksum() + "\n";
@@ -454,35 +448,43 @@ public class ArchiveExplorer extends javax.swing.JFrame {
 
     private void search() {
         jTree1.setSelectionPath(null);
-        ArrayList<DirectoryEntry> children = new ArrayList<DirectoryEntry>();
-        for(Archive a : archives) {
-            children.addAll(a.find(jTextField1.getText(), a.getRoot()));
+        ArrayList<SimpleVFile> children = new ArrayList<SimpleVFile>();
+        for(ExtendedVFile a : archives) {
+            children.addAll(a.find(jTextField1.getText(), a));
         }
         table.setRowCount(0);
         for(int i = 0; i < children.size(); i++) {
-            DirectoryEntry c = children.get(i);
+         SimpleVFile c = children.get(i);
             if(!c.isDirectory()) {
-                table.addRow(new Object[] {c, c.getItemSize(), c.getAttributes(), c.getPath(),
-                                           FileUtils.extension(c.getName()), c.getArchive(),
-                                           c.isComplete()});
+                table.addRow(attrs(c));
             }
         }
     }
 
-    private void directoryChanged(DirectoryEntry dir) {
+    private Object[] attrs(SimpleVFile f) {
+        Object[] attrs = new Object[] {f, f.length(), null, f.getPath(),
+                                       FileUtils.extension(f.getName()), null,
+                                       null};
+        if(f instanceof ExtendedVFile) {
+            ExtendedVFile de = (ExtendedVFile) f;
+            attrs[2] = de.getAttributes();
+            attrs[5] = de.getRoot();
+            attrs[6] = de.isComplete();
+        }
+        return attrs;
+    }
+
+    private void directoryChanged(ExtendedVFile dir) {
         if(!dir.isDirectory()) {
             return;
         }
 
         table.setRowCount(0);
-        for(DirectoryEntry c : dir.children()) {
+        for(SimpleVFile c : dir.children()) {
             if(c.isDirectory()) {
                 continue;
             }
-            table.addRow(new Object[] {c, c.getItemSize(), c.getAttributes(), c.getPath(),
-                                       FileUtils.extension(c.getName()), c.getArchive(),
-                                       c.isComplete()});
-
+            table.addRow(attrs(c));
         }
     }
 
