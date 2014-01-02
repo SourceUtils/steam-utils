@@ -1,8 +1,7 @@
 package com.timepath.steam.io;
 
 import com.timepath.steam.io.storage.ACF;
-import com.timepath.steam.io.util.VFileDirectoryEntryAdapter;
-import com.timepath.vfs.VFile;
+import com.timepath.vfs.SimpleVFile;
 import java.io.*;
 import java.util.Collection;
 import java.util.logging.Logger;
@@ -35,19 +34,19 @@ public class DiffGen {
 
     private static final int K = 1024, M = K * K, G = M * K;
 
-    public static void extract(VFile v, File dir) throws IOException {
-        File out = new File(dir, v.name());
+    public static void extract(SimpleVFile v, File dir) throws IOException {
+        File out = new File(dir, v.getName());
         if(!check(out)) {
             return;
         }
         if(v.isDirectory()) {
             out.mkdir();
-            for(VFile e : v.list()) {
+            for(SimpleVFile e : v.list()) {
                 extract(e, out);
             }
         } else {
             out.createNewFile();
-            InputStream is = v.content();
+            InputStream is = v.stream();
             FileOutputStream fos = new FileOutputStream(out);
             BufferedOutputStream os = new BufferedOutputStream(fos);
             byte[] buf = new byte[8 * M]; // r/w buffer
@@ -67,8 +66,8 @@ public class DiffGen {
             File repo = new File(container, "" + i);
             repo.mkdirs();
             final ACF acf = ACF.fromManifest(i);
-            final Collection<VFile> files = new VFileDirectoryEntryAdapter(acf.getRoot()).list();
-            for(VFile v : files) {
+            Collection<? extends SimpleVFile> files = acf.list();
+            for(SimpleVFile v : files) {
                 extract(v, repo);
             }
         }
