@@ -18,8 +18,9 @@ import java.awt.Desktop;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.*;
@@ -32,9 +33,15 @@ import javax.swing.tree.*;
  * @author TimePath
  */
 @SuppressWarnings("serial")
-public class ArchiveExplorer extends javax.swing.JFrame {
+public class ArchiveExplorer extends JFrame {
+    
+    private static final Logger LOG = Logger.getLogger(ArchiveExplorer.class.getName());
 
-    private ArrayList<ExtendedVFile> archives = new ArrayList<ExtendedVFile>();
+    private final List<ExtendedVFile> archives = new LinkedList<ExtendedVFile>();
+    
+    private final List<ExtendedVFile> toExtract = new LinkedList<ExtendedVFile>();
+    
+    private ExtendedVFile selectedArchive;
 
     private final DefaultTreeModel tree;
 
@@ -89,7 +96,56 @@ public class ArchiveExplorer extends javax.swing.JFrame {
 
     }
 
-    public void load(File f) throws IOException {
+    private void addArchive(ExtendedVFile a) {
+        archives.add(a);
+        DefaultMutableTreeNode node = new DefaultMutableTreeNode(a);
+        a.analyze(node, false);
+        tree.insertNodeInto(
+            node,
+            (MutableTreeNode) tree.getRoot(),
+            tree.getChildCount(tree.getRoot()));
+        tree.reload();
+    }
+
+    private Object[] attrs(SimpleVFile f) {
+        Object[] attrs = new Object[] {
+            f,
+            f.length(),
+            FileUtils.extension(f.getName()),
+            null,
+            f.getPath(),
+            null,
+            null
+        };
+        if(f instanceof ExtendedVFile) {
+            ExtendedVFile de = (ExtendedVFile) f;
+            attrs[3] = de.getRoot();
+            
+            attrs[5] = de.getAttributes();
+            attrs[6] = de.isComplete();
+        }
+        return attrs;
+    }
+
+    private void directoryChanged(ExtendedVFile dir) {
+        if(!dir.isDirectory()) {
+            return;
+        }
+
+        table.setRowCount(0);
+        for(SimpleVFile c : dir.children()) {
+            if(c.isDirectory()) {
+                continue;
+            }
+            table.addRow(attrs(c));
+        }
+    }
+
+    private void extractablesUpdated() {
+        jPopupMenuItem1.setEnabled(!toExtract.isEmpty());
+    }
+    
+    private void load(File f) throws IOException {
         String ext = FileUtils.extension(f);
         ExtendedVFile a;
         if(ext.equals("gcf")) {
@@ -102,16 +158,30 @@ public class ArchiveExplorer extends javax.swing.JFrame {
         }
         addArchive(a);
     }
+        
+    private void search() {
+        jTree1.setSelectionPath(null);
+        List<SimpleVFile> children = new LinkedList<SimpleVFile>();
+        for(ExtendedVFile a : archives) {
+            children.addAll(a.find(jTextField1.getText(), a));
+        }
+        table.setRowCount(0);
+        for(SimpleVFile c : children) {
+            if(!c.isDirectory()) {
+                table.addRow(attrs(c));
+            }
+        }
+    }
 
-    private void addArchive(ExtendedVFile a) {
-        archives.add(a);
-        DefaultMutableTreeNode node = new DefaultMutableTreeNode(a);
-        a.analyze(node, false);
-        tree.insertNodeInto(
-            node,
-            (MutableTreeNode) tree.getRoot(),
-            tree.getChildCount(tree.getRoot()));
-        tree.reload();
+    /**
+     * @param args the command line arguments
+     */
+    public static void main(String... args) {
+        java.awt.EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                new ArchiveExplorer().setVisible(true);
+            }
+        });
     }
 
     /**
@@ -159,6 +229,7 @@ public class ArchiveExplorer extends javax.swing.JFrame {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("Archive Explorer");
+        setPreferredSize(new java.awt.Dimension(800, 500));
 
         jSplitPane1.setDividerLocation(200);
         jSplitPane1.setContinuousLayout(true);
@@ -208,11 +279,11 @@ public class ArchiveExplorer extends javax.swing.JFrame {
 
             },
             new String [] {
-                "Name", "Size", "Attributes", "Path", "Extension", "Archive", "Complete"
+                "Name", "Size", "Type", "Archive", "Path", "Attributes", "Complete"
             }
         ) {
             Class[] types = new Class [] {
-                java.lang.Object.class, java.lang.Integer.class, java.lang.Object.class, java.lang.String.class, java.lang.String.class, java.lang.Object.class, java.lang.Boolean.class
+                java.lang.Object.class, java.lang.Integer.class, java.lang.String.class, java.lang.Object.class, java.lang.String.class, java.lang.Object.class, java.lang.Boolean.class
             };
             boolean[] canEdit = new boolean [] {
                 false, false, false, false, false, false, false
@@ -226,6 +297,8 @@ public class ArchiveExplorer extends javax.swing.JFrame {
                 return canEdit [columnIndex];
             }
         });
+        jTable1.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_OFF);
+        jTable1.setColumnSelectionAllowed(true);
         jTable1.setFillsViewportHeight(true);
         jTable1.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
@@ -252,8 +325,7 @@ public class ArchiveExplorer extends javax.swing.JFrame {
         });
         jMenu1.add(jMenuItem1);
 
-        jMenuItem2.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_M, java.awt.event.InputEvent.CTRL_MASK));
-        jMenuItem2.setText("Mount");
+        jMenuItem2.setText("Mount TF2");
         jMenuItem2.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jMenuItem2ActionPerformed(evt);
@@ -275,16 +347,16 @@ public class ArchiveExplorer extends javax.swing.JFrame {
                 .setTitle("Open archive")
                 .setDirectory(SteamUtils.getSteamApps())
                 .setMultiSelectionEnabled(true)
-                .addFilter(new ExtensionFilter("GCF files", ".gcf"))
                 .addFilter(new ExtensionFilter("VPK directory files", "_dir.vpk"))
                 .addFilter(new ExtensionFilter("VPK files", ".vpk"))
+                .addFilter(new ExtensionFilter("GCF files", ".gcf"))
                 .choose();
             if(fs == null) {
                 return;
             }
             for(File f : fs) {
                 if(f == null) {
-                    LOG.info("File is null");
+                    LOG.warning("File is null");
                     return;
                 }
                 load(f);
@@ -314,12 +386,7 @@ public class ArchiveExplorer extends javax.swing.JFrame {
         }
         directoryChanged(dir);
     }//GEN-LAST:event_directoryChanged
-    private ArrayList<ExtendedVFile> toExtract = new ArrayList<ExtendedVFile>();
-
-    private void extractablesUpdated() {
-        jPopupMenuItem1.setEnabled(!toExtract.isEmpty());
-    }
-
+    
     private void jPopupMenuItem1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jPopupMenuItem1ActionPerformed
         try {
             File[] outs = new NativeFileChooser()
@@ -345,8 +412,7 @@ public class ArchiveExplorer extends javax.swing.JFrame {
             Logger.getLogger(ArchiveExplorer.class.getName()).log(Level.SEVERE, null, ex);
         }
     }//GEN-LAST:event_jPopupMenuItem1ActionPerformed
-    private ExtendedVFile selectedArchive;
-
+    
     private void jTree1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jTree1MouseClicked
         if(SwingUtilities.isRightMouseButton(evt)) {
             TreePath clicked = jTree1.getPathForLocation(evt.getX(), evt.getY());
@@ -445,59 +511,7 @@ public class ArchiveExplorer extends javax.swing.JFrame {
             Logger.getLogger(ArchiveExplorer.class.getName()).log(Level.SEVERE, null, ex);
         }
     }//GEN-LAST:event_jMenuItem2ActionPerformed
-
-    private void search() {
-        jTree1.setSelectionPath(null);
-        ArrayList<SimpleVFile> children = new ArrayList<SimpleVFile>();
-        for(ExtendedVFile a : archives) {
-            children.addAll(a.find(jTextField1.getText(), a));
-        }
-        table.setRowCount(0);
-        for(int i = 0; i < children.size(); i++) {
-         SimpleVFile c = children.get(i);
-            if(!c.isDirectory()) {
-                table.addRow(attrs(c));
-            }
-        }
-    }
-
-    private Object[] attrs(SimpleVFile f) {
-        Object[] attrs = new Object[] {f, f.length(), null, f.getPath(),
-                                       FileUtils.extension(f.getName()), null,
-                                       null};
-        if(f instanceof ExtendedVFile) {
-            ExtendedVFile de = (ExtendedVFile) f;
-            attrs[2] = de.getAttributes();
-            attrs[5] = de.getRoot();
-            attrs[6] = de.isComplete();
-        }
-        return attrs;
-    }
-
-    private void directoryChanged(ExtendedVFile dir) {
-        if(!dir.isDirectory()) {
-            return;
-        }
-
-        table.setRowCount(0);
-        for(SimpleVFile c : dir.children()) {
-            if(c.isDirectory()) {
-                continue;
-            }
-            table.addRow(attrs(c));
-        }
-    }
-
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String... args) {
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new ArchiveExplorer().setVisible(true);
-            }
-        });
-    }
+    
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
     private javax.swing.JMenu jMenu1;
@@ -516,7 +530,5 @@ public class ArchiveExplorer extends javax.swing.JFrame {
     private javax.swing.JTextField jTextField1;
     private javax.swing.JTree jTree1;
     // End of variables declaration//GEN-END:variables
-
-    private static final Logger LOG = Logger.getLogger(ArchiveExplorer.class.getName());
 
 }
