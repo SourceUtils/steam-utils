@@ -148,13 +148,16 @@ public class ArchiveExplorer extends JFrame {
     private void load(File f) throws IOException {
         String ext = FileUtils.extension(f);
         ExtendedVFile a;
-        if(ext.equals("gcf")) {
-            a = new GCF(f);
-        } else if(ext.equals("vpk")) {
-            a = VPK.loadArchive(f);
-        } else {
-            LOG.log(Level.WARNING, "Unrecognised archive: {0}", f);
-            return;
+        switch(ext) {
+            case "gcf":
+                a = new GCF(f);
+                break;
+            case "vpk":
+                a = VPK.loadArchive(f);
+                break;
+            default:
+                LOG.log(Level.WARNING, "Unrecognised archive: {0}", f);
+                return;
         }
         addArchive(a);
     }
@@ -319,7 +322,6 @@ public class ArchiveExplorer extends JFrame {
             }
         });
         jTable1.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_OFF);
-        jTable1.setColumnSelectionAllowed(true);
         jTable1.setFillsViewportHeight(true);
         jTable1.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
