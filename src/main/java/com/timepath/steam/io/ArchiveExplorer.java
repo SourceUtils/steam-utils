@@ -8,8 +8,8 @@ import com.timepath.plaf.x.filechooser.NativeFileChooser;
 import com.timepath.steam.SteamUtils;
 import com.timepath.steam.io.storage.ACF;
 import com.timepath.steam.io.storage.VPK;
-import com.timepath.steam.io.storage.gcf.GCF;
-import com.timepath.steam.io.storage.util.ExtendedVFile;
+import com.timepath.steam.io.gcf.GCF;
+import com.timepath.steam.io.util.ExtendedVFile;
 import com.timepath.swing.DirectoryTreeCellRenderer;
 import com.timepath.vfs.SimpleVFile;
 

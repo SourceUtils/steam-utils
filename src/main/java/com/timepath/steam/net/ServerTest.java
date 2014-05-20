@@ -1,10 +1,10 @@
 package com.timepath.steam.net;
 
 import com.timepath.DateUtils;
-import com.timepath.steam.SteamID;
 import com.timepath.steam.SteamUtils;
 import com.timepath.steam.io.VDF1;
 import com.timepath.steam.io.util.VDFNode1;
+import com.timepath.steam.net.MasterServer.Region;
 
 import javax.swing.*;
 import java.awt.*;
@@ -46,12 +46,9 @@ class ServerTest {
                     new SwingWorker<Void, Void>() {
                         @Override
                         protected Void doInBackground() throws Exception {
-                            SteamID user = SteamUtils.getUser();
                             VDF1 vdf = new VDF1();
-                            vdf.readExternal(new FileInputStream(new File(SteamUtils.getSteam(),
-                                                                          "userdata/" + user.getUID().split(":")[2] +
-                                                                          "/7/remote/serverbrowser_hist.vdf"
-                            )));
+                            vdf.readExternal(new FileInputStream(new File(SteamUtils.getUserData(),
+                                                                          "7/remote/serverbrowser_hist.vdf")));
                             VDFNode1 v = vdf.getRoot().get("Filters");
                             VDFNode1 favorites = v.get("Favorites");
                             VDFNode1 history = v.get("History");

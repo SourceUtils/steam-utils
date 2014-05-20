@@ -4,6 +4,8 @@ import com.timepath.DataUtils;
 import com.timepath.plaf.OS;
 import com.timepath.plaf.x.filechooser.NativeFileChooser;
 import com.timepath.steam.SteamUtils;
+import com.timepath.steam.io.blob.Blob;
+import com.timepath.steam.io.bvdf.BVDF;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -111,8 +113,8 @@ class DataTest extends JFrame {
         jMenuItem1.setText("Open");
         jMenuItem1.addActionListener(new ActionListener() {
             @Override
-            public void actionPerformed(ActionEvent evt) {
-                openVDF(evt);
+            public void actionPerformed(ActionEvent e) {
+                openFile(e);
             }
         });
         jMenu1.add(jMenuItem1);
@@ -121,8 +123,8 @@ class DataTest extends JFrame {
         jMenuItem2.setText("AppInfo");
         jMenuItem2.addActionListener(new ActionListener() {
             @Override
-            public void actionPerformed(ActionEvent evt) {
-                appInfo(evt);
+            public void actionPerformed(ActionEvent e) {
+                appInfo(e);
             }
         });
         jMenu1.add(jMenuItem2);
@@ -141,9 +143,9 @@ class DataTest extends JFrame {
         pack();
     }
 
-    private void openVDF(ActionEvent evt) {
+    private void openFile(ActionEvent e) {
         try {
-            File[] fs = new NativeFileChooser().setParent(this).setTitle("Open VDF").choose();
+            File[] fs = new NativeFileChooser().setDirectory(SteamUtils.getSteam()).setParent(this).setTitle("Open VDF").choose();
             if(fs == null) {
                 return;
             }
@@ -171,7 +173,7 @@ class DataTest extends JFrame {
                         Blob bin = new Blob();
                         bin.readExternal(DataUtils.mapFile(f));
                         n = bin.getRoot();
-                    } else if(f.getName().toLowerCase().matches("^.*(vdf|res)$")) {
+                    } else if(f.getName().toLowerCase().matches("^.*(vdf|res|bin)$")) {
                         if(VDF1.isBinary(f)) {
                             BVDF bin = new BVDF();
                             bin.readExternal(DataUtils.mapFile(f));
@@ -181,10 +183,6 @@ class DataTest extends JFrame {
                             res.readExternal(new FileInputStream(f));
                             n = res.getRoot();
                         }
-                    } else if(f.getName().toLowerCase().endsWith(".bin")) {
-                        BVDF bin = new BVDF();
-                        bin.readExternal(DataUtils.mapFile(f));
-                        n = bin.getRoot();
                     } else {
                         JOptionPane.showMessageDialog(DataTest.this,
                                                       MessageFormat.format("{0} is not supported", f.getAbsolutePath()),
