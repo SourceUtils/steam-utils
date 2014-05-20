@@ -6,12 +6,13 @@ import com.timepath.plaf.OS;
 import com.timepath.plaf.x.filechooser.BaseFileChooser;
 import com.timepath.plaf.x.filechooser.NativeFileChooser;
 import com.timepath.steam.SteamUtils;
+import com.timepath.steam.io.gcf.GCF;
 import com.timepath.steam.io.storage.ACF;
 import com.timepath.steam.io.storage.VPK;
-import com.timepath.steam.io.gcf.GCF;
 import com.timepath.steam.io.util.ExtendedVFile;
 import com.timepath.swing.DirectoryTreeCellRenderer;
 import com.timepath.vfs.SimpleVFile;
+import org.jdesktop.swingx.JXTable;
 
 import javax.swing.*;
 import javax.swing.event.TreeSelectionEvent;
@@ -35,106 +36,89 @@ import java.util.logging.Logger;
  * @author TimePath
  */
 @SuppressWarnings("serial")
-class ArchiveExplorer extends JFrame {
+public class ArchiveExplorer extends JPanel {
 
     private static final Logger                    LOG       = Logger.getLogger(ArchiveExplorer.class.getName());
-    private final        Collection<ExtendedVFile> archives  = new LinkedList<>();
-    private final        List<ExtendedVFile>       toExtract = new LinkedList<>();
-    private final DefaultTreeModel  tree;
-    private final DefaultTableModel table;
-    private       ExtendedVFile     selectedArchive;
-    private       JPopupMenu        jPopupMenu1;
-    private       JMenuItem         jPopupMenuItem1;
-    private       JTable            jTable1;
-    private       JTextField        jTextField1;
-    private       JTree             jTree1;
+    protected final        Collection<ExtendedVFile> archives  = new LinkedList<>();
+    protected final        List<ExtendedVFile>       toExtract = new LinkedList<>();
+    protected DefaultTreeModel  treeModel;
+    protected DefaultTableModel tableModel;
+    protected ExtendedVFile     selectedArchive;
+    protected JPopupMenu        popupMenu;
+    protected JMenuItem         extractMenuItem;
+    protected JXTable           table;
+    protected JMenuBar          menuBar;
+    protected JTree             tree;
 
-    private ArchiveExplorer() {
-        initComponents();
-        jTree1.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
-        jTree1.setCellRenderer(new DirectoryTreeCellRenderer());
-        tree = (DefaultTreeModel) jTree1.getModel();
-        jTable1.setDefaultEditor(Object.class, new CellSelectionListener());
-        jTable1.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
-            private JLabel label = new JLabel();
-
-            @Override
-            public Component getTableCellRendererComponent(JTable table,
-                                                           Object value,
-                                                           boolean isSelected,
-                                                           boolean hasFocus,
-                                                           int row,
-                                                           int column)
-            {
-                Component comp = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                if(comp instanceof JLabel) {
-                    label = (JLabel) comp;
-                    if(value instanceof ViewableData) {
-                        ViewableData data = (ViewableData) value;
-                        label.setIcon(null);
-                        label.setIcon(data.getIcon());
-                        label.setText(data.toString());
-                        return label;
-                    }
-                }
-                return comp;
-            }
-        });
-        table = (DefaultTableModel) jTable1.getModel();
+    public ArchiveExplorer() {
+        this.setLayout(new BorderLayout());
+        this.add(initComponents(), BorderLayout.CENTER);
     }
 
     /**
      * @param args
      *         the command line arguments
      */
-    public static void main(String... args) {
+    public static void main(String[] args) {
         EventQueue.invokeLater(new Runnable() {
             @Override
             public void run() {
-                new ArchiveExplorer().setVisible(true);
+                JFrame f = new JFrame();
+                f.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+                f.setTitle("Archive Explorer");
+                f.setPreferredSize(new Dimension(800, 500));
+                ArchiveExplorer ae = new ArchiveExplorer();
+                f.setContentPane(ae);
+                f.setJMenuBar(ae.getMenuBar());
+                f.pack();
+                f.setLocationRelativeTo(null);
+                f.setVisible(true);
             }
         });
     }
 
-    private static Object[] attrs(SimpleVFile f) {
-        Object[] attrs = {
-                f, f.length(), FileUtils.extension(f.getName()), null, f.getPath(), null, null
-        };
-        if(f instanceof ExtendedVFile) {
-            ExtendedVFile de = (ExtendedVFile) f;
-            attrs[3] = de.getRoot();
-            attrs[5] = de.getAttributes();
-            attrs[6] = de.isComplete();
+    public JMenuBar getMenuBar() {
+        return menuBar;
+    }
+
+    protected static Object[] attrs(SimpleVFile simple) {
+        Object[] attrs = { simple, simple.length(), FileUtils.extension(simple.getName()), null, simple.getPath(), null, null };
+        if(simple instanceof ExtendedVFile) {
+            ExtendedVFile extended = (ExtendedVFile) simple;
+            attrs[3] = extended.getRoot();
+            attrs[5] = extended.getAttributes();
+            attrs[6] = extended.isComplete();
         }
         return attrs;
     }
 
-    private void addArchive(ExtendedVFile a) {
+    protected void addArchive(ExtendedVFile a) {
         archives.add(a);
         DefaultMutableTreeNode node = new DefaultMutableTreeNode(a);
         a.analyze(node, false);
-        tree.insertNodeInto(node, (MutableTreeNode) tree.getRoot(), tree.getChildCount(tree.getRoot()));
-        tree.reload();
+        treeModel.insertNodeInto(node, (MutableTreeNode) treeModel.getRoot(), treeModel.getChildCount(treeModel.getRoot()));
+        treeModel.reload();
     }
 
-    private void directoryChanged(ExtendedVFile dir) {
+    protected void directoryChanged(ExtendedVFile dir) {
         if(!dir.isDirectory()) {
             return;
         }
-        table.setRowCount(0);
+        tableModel.setRowCount(0);
         for(SimpleVFile c : dir.children()) {
             if(c.isDirectory()) {
                 continue;
             }
-            table.addRow(attrs(c));
+            tableModel.addRow(attrs(c));
         }
+        table.packAll();
     }
 
-    private void extractablesUpdated() {
-        jPopupMenuItem1.setEnabled(!toExtract.isEmpty());
+    protected void extractablesUpdated() {
+        extractMenuItem.setEnabled(!toExtract.isEmpty());
     }
 
-    private void load(File f) throws IOException {
+    protected void load(File f) throws IOException {
         String ext = FileUtils.extension(f);
         ExtendedVFile a;
         switch(ext) {
@@ -151,15 +135,15 @@ class ArchiveExplorer extends JFrame {
         addArchive(a);
     }
 
-    private void search() {
-        SwingWorker<Void, Object[]> sw = new SwingWorker<Void, Object[]>() {
+    protected void search(final String search) {
+        new SwingWorker<Void, Object[]>() {
             @Override
             protected Void doInBackground() throws Exception {
-                jTree1.setSelectionPath(null);
-                table.setRowCount(0);
+                tree.setSelectionPath(null);
+                tableModel.setRowCount(0);
                 Collection<SimpleVFile> children = new LinkedList<>();
                 for(ExtendedVFile a : archives) {
-                    children.addAll(a.find(jTextField1.getText(), a));
+                    children.addAll(a.find(search, a));
                 }
                 for(SimpleVFile c : children) {
                     if(!c.isDirectory()) {
@@ -172,7 +156,7 @@ class ArchiveExplorer extends JFrame {
             @Override
             protected void process(List<Object[]> chunks) {
                 for(Object[] rowData : chunks) {
-                    table.addRow(rowData);
+                    tableModel.addRow(rowData);
                 }
             }
 
@@ -180,148 +164,173 @@ class ArchiveExplorer extends JFrame {
             protected void done() {
                 JOptionPane.showMessageDialog(ArchiveExplorer.this, "Done");
             }
-        };
-        sw.execute();
+        }.execute();
     }
 
-    private void initComponents() {
-        jPopupMenu1 = new JPopupMenu();
-        jPopupMenuItem1 = new JMenuItem();
-        JMenuItem jPopupMenuItem2 = new JMenuItem();
-        JSplitPane jSplitPane1 = new JSplitPane();
-        JScrollPane jScrollPane2 = new JScrollPane();
-        jTree1 = new JTree();
-        JPanel jPanel1 = new JPanel();
-        JPanel jPanel2 = new JPanel();
-        jTextField1 = new JTextField();
-        JButton jButton1 = new JButton();
-        JScrollPane jScrollPane3 = new JScrollPane();
-        jTable1 = new JTable();
-        JMenuBar jMenuBar1 = new JMenuBar();
-        JMenu jMenu1 = new JMenu();
-        JMenuItem jMenuItem1 = new JMenuItem();
-        JMenuItem jMenuItem2 = new JMenuItem();
-        jPopupMenuItem1.setText("Extract");
-        jPopupMenuItem1.setEnabled(false);
-        jPopupMenuItem1.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent evt) {
-                jPopupMenuItem1ActionPerformed(evt);
-            }
-        });
-        jPopupMenu1.add(jPopupMenuItem1);
-        jPopupMenuItem2.setText("Properties");
-        jPopupMenuItem2.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent evt) {
-                showProperties(evt);
-            }
-        });
-        jPopupMenu1.add(jPopupMenuItem2);
-        setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-        setTitle("Archive Explorer");
-        setPreferredSize(new Dimension(800, 500));
-        jSplitPane1.setDividerLocation(200);
-        jSplitPane1.setContinuousLayout(true);
-        jSplitPane1.setOneTouchExpandable(true);
-        DefaultMutableTreeNode treeNode1 = new DefaultMutableTreeNode("root");
-        jTree1.setModel(new DefaultTreeModel(treeNode1));
-        jTree1.setRootVisible(false);
-        jTree1.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent evt) {
-                jTree1MouseClicked(evt);
-            }
-        });
-        jTree1.addTreeSelectionListener(new TreeSelectionListener() {
-            @Override
-            public void valueChanged(TreeSelectionEvent evt) {
-                directoryChanged(evt);
-            }
-        });
-        jScrollPane2.setViewportView(jTree1);
-        jSplitPane1.setLeftComponent(jScrollPane2);
-        jPanel1.setLayout(new BorderLayout());
-        jPanel2.setLayout(new BorderLayout());
-        jTextField1.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent evt) {
-                jTextField1ActionPerformed(evt);
-            }
-        });
-        jPanel2.add(jTextField1, BorderLayout.CENTER);
-        jButton1.setText("Search");
-        jButton1.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent evt) {
-                jButton1ActionPerformed(evt);
-            }
-        });
-        jPanel2.add(jButton1, BorderLayout.EAST);
-        jPanel1.add(jPanel2, BorderLayout.NORTH);
-        jTable1.setAutoCreateRowSorter(true);
-        jTable1.setModel(new DefaultTableModel(new Object[][] {
-        }, new String[] {
-                "Name", "Size", "Type", "Archive", "Path", "Attributes", "Complete"
-        }
-        )
-        {
-            Class[] types = {
-                    Object.class, Integer.class, String.class, Object.class, String.class, Object.class, Boolean.class
-            };
-            boolean[] canEdit = {
-                    false, false, false, false, false, false, false
-            };
+    protected Component initComponents() {
+        menuBar = new JMenuBar() {{
+            add(new JMenu("File") {{
+                setMnemonic('F');
+                add(new JMenuItem("Open") {{
+                    setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_MASK));
+                    addActionListener(new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent evt) {
+                            open();
+                        }
+                    });
+                }});
+                add(new JMenuItem("Mount TF2") {{
+                    addActionListener(new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent evt) {
+                            mount(440);
+                        }
+                    });
+                }});
+            }});
+        }};
+        popupMenu = new JPopupMenu() {{
+            add(extractMenuItem = new JMenuItem("Extract") {{
+                setEnabled(false);
+                addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent evt) {
+                        extract(toExtract);
+                    }
+                });
+            }});
+            add(new JMenuItem("Properties") {{
+                addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent evt) {
+                        properties();
+                    }
+                });
+            }});
+        }};
+        return new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, true) {{
+            setDividerLocation(200);
+            setOneTouchExpandable(true);
+            setLeftComponent(new JScrollPane(tree = new JTree(new DefaultMutableTreeNode("root")) {{
+                setRootVisible(false);
+                addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseClicked(MouseEvent evt) {
+                        treeClicked(evt);
+                    }
+                });
+                addTreeSelectionListener(new TreeSelectionListener() {
+                    @Override
+                    public void valueChanged(TreeSelectionEvent evt) {
+                        directoryChanged(evt);
+                    }
+                });
+                getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
+                setCellRenderer(new DirectoryTreeCellRenderer());
+                ArchiveExplorer.this.treeModel = (DefaultTreeModel) getModel();
+            }}));
+            setRightComponent(new JPanel(new BorderLayout()) {{
+                add(new JPanel(new BorderLayout()) {{
+                    final JTextField field;
+                    add(field = new JTextField() {{
+                        addActionListener(new ActionListener() {
+                            @Override
+                            public void actionPerformed(ActionEvent evt) {
+                                search(getText());
+                            }
+                        });
+                    }}, BorderLayout.CENTER);
+                    add(new JButton("Search") {{
+                        addActionListener(new ActionListener() {
+                            @Override
+                            public void actionPerformed(ActionEvent evt) {
+                                search(field.getText());
+                            }
+                        });
+                    }}, BorderLayout.EAST);
+                }}, BorderLayout.NORTH);
+                add(new JScrollPane(table = new JXTable() {{
+                    setColumnControlVisible(true);
+                    setHorizontalScrollEnabled(true);
+                    setAutoCreateRowSorter(true);
+                    setFillsViewportHeight(true);
+                    getColumnModel().getSelectionModel().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+                    addMouseListener(new MouseAdapter() {
+                        @Override
+                        public void mouseClicked(MouseEvent evt) {
+                            tableClicked(evt);
+                        }
+                    });
+                    setModel(tableModel = new DefaultTableModel(new Object[][] { }, new String[] {
+                            "Name", "Size", "Type", "Archive", "Path", "Attributes", "Complete"
+                    })
+                    {
+                        final Class[] types = {
+                                Object.class, Integer.class, String.class, Object.class, String.class, Object.class, Boolean.class
+                        };
+                        final boolean[] canEdit = { false, false, false, false, false, false, false };
 
-            @Override
-            public Class getColumnClass(int columnIndex) {
-                return types[columnIndex];
-            }
+                        @Override
+                        public Class getColumnClass(int columnIndex) {
+                            return types[columnIndex];
+                        }
 
-            @Override
-            public boolean isCellEditable(int rowIndex, int columnIndex) {
-                return canEdit[columnIndex];
-            }
-        });
-        jTable1.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-        jTable1.setFillsViewportHeight(true);
-        jTable1.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent evt) {
-                jTable1MouseClicked(evt);
-            }
-        });
-        jScrollPane3.setViewportView(jTable1);
-        jTable1.getColumnModel().getSelectionModel().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-        jPanel1.add(jScrollPane3, BorderLayout.CENTER);
-        jSplitPane1.setRightComponent(jPanel1);
-        getContentPane().add(jSplitPane1, BorderLayout.CENTER);
-        jMenu1.setText("File");
-        jMenuItem1.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_MASK));
-        jMenuItem1.setText("Open");
-        jMenuItem1.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent evt) {
-                open(evt);
-            }
-        });
-        jMenu1.add(jMenuItem1);
-        jMenuItem2.setText("Mount TF2");
-        jMenuItem2.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent evt) {
-                jMenuItem2ActionPerformed(evt);
-            }
-        });
-        jMenu1.add(jMenuItem2);
-        jMenuBar1.add(jMenu1);
-        setJMenuBar(jMenuBar1);
-        pack();
+                        @Override
+                        public boolean isCellEditable(int rowIndex, int columnIndex) {
+                            return canEdit[columnIndex];
+                        }
+                    });
+                    setDefaultEditor(Object.class, new DefaultCellEditor(new JTextField()) {
+                        @Override
+                        public Component getTableCellEditorComponent(JTable table,
+                                                                     Object value,
+                                                                     boolean isSelected,
+                                                                     int row,
+                                                                     int column)
+                        {
+                            Object val = table.getValueAt(row, 0);
+                            if(val instanceof ExtendedVFile) {
+                                directoryChanged((ExtendedVFile) val);
+                            }
+                            return null;
+                        }
+                    });
+                    setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+                        @Override
+                        public Component getTableCellRendererComponent(JTable table,
+                                                                       Object value,
+                                                                       boolean isSelected,
+                                                                       boolean hasFocus,
+                                                                       int row,
+                                                                       int column)
+                        {
+                            Component comp = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                            if(comp instanceof JLabel) {
+                                JLabel label = (JLabel) comp;
+                                if(value instanceof ViewableData) {
+                                    ViewableData data = (ViewableData) value;
+                                    label.setIcon(null);
+                                    label.setIcon(data.getIcon());
+                                    label.setText(data.toString());
+                                    return label;
+                                }
+                            }
+                            return comp;
+                        }
+                    });
+                }}), BorderLayout.CENTER);
+            }});
+        }};
     }
 
-    private void open(ActionEvent evt) {
+    protected Frame getFrame() {
+        return null;
+    }
+
+    protected void open() {
         try {
-            File[] fs = new NativeFileChooser().setParent(this)
+            File[] fs = new NativeFileChooser().setParent(getFrame())
                                                .setTitle("Open archive")
                                                .setDirectory(SteamUtils.getSteamApps())
                                                .setMultiSelectionEnabled(true)
@@ -340,14 +349,14 @@ class ArchiveExplorer extends JFrame {
                 load(f);
             }
         } catch(IOException ex) {
-            Logger.getLogger(ArchiveExplorer.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.SEVERE, null, ex);
         }
     }
 
-    private void directoryChanged(TreeSelectionEvent evt) {
+    protected void directoryChanged(TreeSelectionEvent evt) {
         TreePath selection = evt.getNewLeadSelectionPath();
         if(selection == null) {
-            table.setRowCount(0);
+            tableModel.setRowCount(0);
             return;
         }
         Object node = selection.getLastPathComponent();
@@ -365,9 +374,9 @@ class ArchiveExplorer extends JFrame {
         directoryChanged(dir);
     }
 
-    private void jPopupMenuItem1ActionPerformed(ActionEvent evt) {
+    protected void extract(List<ExtendedVFile> items) {
         try {
-            File[] outs = new NativeFileChooser().setParent(this)
+            File[] outs = new NativeFileChooser().setParent(getFrame())
                                                  .setTitle("Select extraction directory")
                                                  .setMultiSelectionEnabled(false)
                                                  .setDialogType(BaseFileChooser.DialogType.OPEN_DIALOG)
@@ -377,30 +386,30 @@ class ArchiveExplorer extends JFrame {
                 return;
             }
             File out = outs[0];
-            for(ExtendedVFile e : toExtract) {
+            for(ExtendedVFile e : items) {
                 try {
                     e.extract(out);
                 } catch(IOException ex) {
-                    Logger.getLogger(ArchiveExplorer.class.getName()).log(Level.SEVERE, null, ex);
+                    LOG.log(Level.SEVERE, null, ex);
                 }
             }
             LOG.info("Done");
         } catch(IOException ex) {
-            Logger.getLogger(ArchiveExplorer.class.getName()).log(Level.SEVERE, null, ex);
+            LOG.log(Level.SEVERE, null, ex);
         }
     }
 
-    private void jTree1MouseClicked(MouseEvent evt) {
+    protected void treeClicked(MouseEvent evt) {
         if(SwingUtilities.isRightMouseButton(evt)) {
-            TreePath clicked = jTree1.getPathForLocation(evt.getX(), evt.getY());
+            TreePath clicked = tree.getPathForLocation(evt.getX(), evt.getY());
             if(clicked == null) {
                 return;
             }
-            if(( jTree1.getSelectionPaths() == null ) || !Arrays.asList(jTree1.getSelectionPaths()).contains(clicked)) {
-                jTree1.setSelectionPath(clicked);
+            if(( tree.getSelectionPaths() == null ) || !Arrays.asList(tree.getSelectionPaths()).contains(clicked)) {
+                tree.setSelectionPath(clicked);
             }
             toExtract.clear();
-            TreePath[] paths = jTree1.getSelectionPaths();
+            TreePath[] paths = tree.getSelectionPaths();
             for(TreePath p : paths) {
                 if(!( p.getLastPathComponent() instanceof DefaultMutableTreeNode )) {
                     return;
@@ -412,31 +421,32 @@ class ArchiveExplorer extends JFrame {
                 }
             }
             extractablesUpdated();
-            jPopupMenu1.show(jTree1, evt.getX(), evt.getY());
+            popupMenu.show(tree, evt.getX(), evt.getY());
         }
     }
 
-    private void jTable1MouseClicked(MouseEvent evt) {
-        int row = jTable1.rowAtPoint(evt.getPoint());
+    protected void tableClicked(MouseEvent evt) {
+        int row = table.rowAtPoint(evt.getPoint());
         if(row == -1) {
             return;
         }
-        int[] selectedRows = jTable1.getSelectedRows();
+        int[] selectedRows = table.getSelectedRows();
         Arrays.sort(selectedRows);
         if(Arrays.binarySearch(selectedRows, row) < 0) {
-            jTable1.setRowSelectionInterval(row, row);
+            table.setRowSelectionInterval(row, row);
         }
         toExtract.clear();
-        int[] selected = jTable1.getSelectedRows();
+        int[] selected = table.getSelectedRows();
         for(int r : selected) {
-            Object userObject = table.getValueAt(jTable1.convertRowIndexToModel(r), 0);
+            Object userObject = tableModel.getValueAt(table.convertRowIndexToModel(r), 0);
             if(userObject instanceof ExtendedVFile) {
                 toExtract.add((ExtendedVFile) userObject);
             }
         }
+        selectedArchive = null;
         extractablesUpdated();
         if(SwingUtilities.isRightMouseButton(evt)) {
-            jPopupMenu1.show(jTable1, evt.getX(), evt.getY());
+            popupMenu.show(table, evt.getX(), evt.getY());
         } else if(SwingUtilities.isLeftMouseButton(evt) && ( evt.getClickCount() >= 2 )) {
             ExtendedVFile e = toExtract.get(0);
             File dir = new File(System.getProperty("java.io.tmpdir"));
@@ -450,20 +460,12 @@ class ArchiveExplorer extends JFrame {
                     Runtime.getRuntime().exec(new String[] { "xdg-open", f.getPath() });
                 }
             } catch(IOException ex) {
-                Logger.getLogger(ArchiveExplorer.class.getName()).log(Level.SEVERE, null, ex);
+                LOG.log(Level.SEVERE, null, ex);
             }
         }
     }
 
-    private void jTextField1ActionPerformed(ActionEvent evt) {
-        search();
-    }
-
-    private void jButton1ActionPerformed(ActionEvent evt) {
-        search();
-    }
-
-    private void showProperties(ActionEvent evt) {
+    protected void properties() {
         String title;
         String message = "";
         if(selectedArchive != null) {
@@ -478,27 +480,11 @@ class ArchiveExplorer extends JFrame {
         JOptionPane.showMessageDialog(this, message, title, JOptionPane.INFORMATION_MESSAGE);
     }
 
-    private void jMenuItem2ActionPerformed(ActionEvent evt) {
+    protected void mount(int appID) {
         try {
-            addArchive(ACF.fromManifest(440));
+            addArchive(ACF.fromManifest(appID));
         } catch(FileNotFoundException ex) {
-            Logger.getLogger(ArchiveExplorer.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-
-    private class CellSelectionListener extends DefaultCellEditor {
-
-        CellSelectionListener() {
-            super(new JTextField());
-        }
-
-        @Override
-        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
-            Object val = table.getValueAt(row, 0);
-            if(val instanceof ExtendedVFile) {
-                directoryChanged((ExtendedVFile) val);
-            }
-            return null;
+            LOG.log(Level.SEVERE, null, ex);
         }
     }
 }
