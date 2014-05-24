@@ -1,7 +1,6 @@
 package com.timepath.steam.io;
 
 import com.timepath.FileUtils;
-import com.timepath.io.utils.ViewableData;
 import com.timepath.plaf.OS;
 import com.timepath.plaf.x.filechooser.BaseFileChooser;
 import com.timepath.plaf.x.filechooser.NativeFileChooser;
@@ -10,24 +9,19 @@ import com.timepath.steam.io.gcf.GCF;
 import com.timepath.steam.io.storage.ACF;
 import com.timepath.steam.io.storage.VPK;
 import com.timepath.steam.io.util.ExtendedVFile;
-import com.timepath.swing.DirectoryTreeCellRenderer;
 import com.timepath.vfs.SimpleVFile;
-import org.jdesktop.swingx.JXTable;
+import org.jdesktop.swingx.JXTreeTable;
+import org.jdesktop.swingx.treetable.AbstractTreeTableModel;
 
 import javax.swing.*;
-import javax.swing.event.TreeSelectionEvent;
-import javax.swing.event.TreeSelectionListener;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.tree.*;
+import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.LinkedList;
+import java.io.InputStream;
+import java.util.*;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -38,20 +32,15 @@ import java.util.logging.Logger;
 @SuppressWarnings("serial")
 public class ArchiveExplorer extends JPanel {
 
-    private static final Logger                    LOG       = Logger.getLogger(ArchiveExplorer.class.getName());
-    protected final        Collection<ExtendedVFile> archives  = new LinkedList<>();
-    protected final        List<ExtendedVFile>       toExtract = new LinkedList<>();
-    protected DefaultTreeModel  treeModel;
-    protected DefaultTableModel tableModel;
-    protected ExtendedVFile     selectedArchive;
-    protected JPopupMenu        popupMenu;
-    protected JMenuItem         extractMenuItem;
-    protected JXTable           table;
-    protected JMenuBar          menuBar;
-    protected JTree             tree;
+    private static final Logger                  LOG      = Logger.getLogger(ArchiveExplorer.class.getName());
+    protected final      List<SimpleVFile> archives = new LinkedList<>();
+    protected ArchiveTreeTableModel tableModel;
+    protected JPopupMenu            popupMenu;
+    protected JMenuItem             extractMenuItem;
+    protected JXTreeTable           table;
+    protected JMenuBar              menuBar;
 
     public ArchiveExplorer() {
-        this.setLayout(new BorderLayout());
         this.add(initComponents(), BorderLayout.CENTER);
     }
 
@@ -81,41 +70,11 @@ public class ArchiveExplorer extends JPanel {
         return menuBar;
     }
 
-    protected static Object[] attrs(SimpleVFile simple) {
-        Object[] attrs = { simple, simple.length(), FileUtils.extension(simple.getName()), null, simple.getPath(), null, null };
-        if(simple instanceof ExtendedVFile) {
-            ExtendedVFile extended = (ExtendedVFile) simple;
-            attrs[3] = extended.getRoot();
-            attrs[5] = extended.getAttributes();
-            attrs[6] = extended.isComplete();
-        }
-        return attrs;
-    }
-
-    protected void addArchive(ExtendedVFile a) {
+    protected void addArchive(SimpleVFile a) {
         archives.add(a);
-        DefaultMutableTreeNode node = new DefaultMutableTreeNode(a);
-        a.analyze(node, false);
-        treeModel.insertNodeInto(node, (MutableTreeNode) treeModel.getRoot(), treeModel.getChildCount(treeModel.getRoot()));
-        treeModel.reload();
-    }
-
-    protected void directoryChanged(ExtendedVFile dir) {
-        if(!dir.isDirectory()) {
-            return;
-        }
-        tableModel.setRowCount(0);
-        for(SimpleVFile c : dir.children()) {
-            if(c.isDirectory()) {
-                continue;
-            }
-            tableModel.addRow(attrs(c));
-        }
-        table.packAll();
-    }
-
-    protected void extractablesUpdated() {
-        extractMenuItem.setEnabled(!toExtract.isEmpty());
+        table.setTreeTableModel(tableModel = new ArchiveTreeTableModel(archives));
+        // hide the last few columns
+        for(int i = 0; i < 3; i++) { table.getColumnExt(4).setVisible(false); }
     }
 
     protected void load(File f) throws IOException {
@@ -136,27 +95,43 @@ public class ArchiveExplorer extends JPanel {
     }
 
     protected void search(final String search) {
-        new SwingWorker<Void, Object[]>() {
+        final SimpleVFile searchNode = new SimpleVFile() {
+            @Override
+            public boolean isDirectory() {
+                return true;
+            }
+
+            @Override
+            public String getName() {
+                return "Search: " + search;
+            }
+
+            @Override
+            public InputStream stream() {
+                return null;
+            }
+        };
+        new SwingWorker<Void, SimpleVFile>() {
             @Override
             protected Void doInBackground() throws Exception {
-                tree.setSelectionPath(null);
-                tableModel.setRowCount(0);
                 Collection<SimpleVFile> children = new LinkedList<>();
-                for(ExtendedVFile a : archives) {
+                for(SimpleVFile a : archives) {
                     children.addAll(a.find(search, a));
                 }
+                addArchive(searchNode);
+
                 for(SimpleVFile c : children) {
                     if(!c.isDirectory()) {
-                        publish(attrs(c));
+                        publish(c);
                     }
                 }
                 return null;
             }
 
             @Override
-            protected void process(List<Object[]> chunks) {
-                for(Object[] rowData : chunks) {
-                    tableModel.addRow(rowData);
+            protected void process(List<SimpleVFile> chunks) {
+                for(SimpleVFile c : chunks) {
+                    searchNode.add(c);
                 }
             }
 
@@ -168,6 +143,7 @@ public class ArchiveExplorer extends JPanel {
     }
 
     protected Component initComponents() {
+        setLayout(new BorderLayout());
         menuBar = new JMenuBar() {{
             add(new JMenu("File") {{
                 setMnemonic('F');
@@ -192,11 +168,10 @@ public class ArchiveExplorer extends JPanel {
         }};
         popupMenu = new JPopupMenu() {{
             add(extractMenuItem = new JMenuItem("Extract") {{
-                setEnabled(false);
                 addActionListener(new ActionListener() {
                     @Override
                     public void actionPerformed(ActionEvent evt) {
-                        extract(toExtract);
+                        extract(getSelected());
                     }
                 });
             }});
@@ -204,133 +179,75 @@ public class ArchiveExplorer extends JPanel {
                 addActionListener(new ActionListener() {
                     @Override
                     public void actionPerformed(ActionEvent evt) {
-                        properties();
+                        properties(getSelected());
                     }
                 });
             }});
         }};
-        return new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, true) {{
-            setDividerLocation(200);
-            setOneTouchExpandable(true);
-            setLeftComponent(new JScrollPane(tree = new JTree(new DefaultMutableTreeNode("root")) {{
-                setRootVisible(false);
+        return new JPanel(new BorderLayout()) {{
+            add(new JPanel(new BorderLayout()) {{
+                final JTextField field;
+                add(field = new JTextField() {{
+                    addActionListener(new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent evt) {
+                            search(getText());
+                        }
+                    });
+                }}, BorderLayout.CENTER);
+                add(new JButton("Search") {{
+                    addActionListener(new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent evt) {
+                            search(field.getText());
+                        }
+                    });
+                }}, BorderLayout.EAST);
+            }}, BorderLayout.NORTH);
+            add(new JScrollPane(table = new JXTreeTable() {{
+                setLargeModel(true);
+                setColumnControlVisible(true);
+                setHorizontalScrollEnabled(true);
+                setAutoCreateRowSorter(true);
+                setFillsViewportHeight(true);
+                getColumnModel().getSelectionModel().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
                 addMouseListener(new MouseAdapter() {
                     @Override
                     public void mouseClicked(MouseEvent evt) {
-                        treeClicked(evt);
+                        tableClicked(evt);
                     }
                 });
-                addTreeSelectionListener(new TreeSelectionListener() {
-                    @Override
-                    public void valueChanged(TreeSelectionEvent evt) {
-                        directoryChanged(evt);
-                    }
-                });
-                getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
-                setCellRenderer(new DirectoryTreeCellRenderer());
-                ArchiveExplorer.this.treeModel = (DefaultTreeModel) getModel();
-            }}));
-            setRightComponent(new JPanel(new BorderLayout()) {{
-                add(new JPanel(new BorderLayout()) {{
-                    final JTextField field;
-                    add(field = new JTextField() {{
-                        addActionListener(new ActionListener() {
-                            @Override
-                            public void actionPerformed(ActionEvent evt) {
-                                search(getText());
-                            }
-                        });
-                    }}, BorderLayout.CENTER);
-                    add(new JButton("Search") {{
-                        addActionListener(new ActionListener() {
-                            @Override
-                            public void actionPerformed(ActionEvent evt) {
-                                search(field.getText());
-                            }
-                        });
-                    }}, BorderLayout.EAST);
-                }}, BorderLayout.NORTH);
-                add(new JScrollPane(table = new JXTable() {{
-                    setColumnControlVisible(true);
-                    setHorizontalScrollEnabled(true);
-                    setAutoCreateRowSorter(true);
-                    setFillsViewportHeight(true);
-                    getColumnModel().getSelectionModel().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-                    addMouseListener(new MouseAdapter() {
-                        @Override
-                        public void mouseClicked(MouseEvent evt) {
-                            tableClicked(evt);
-                        }
-                    });
-                    setModel(tableModel = new DefaultTableModel(new Object[][] { }, new String[] {
-                            "Name", "Size", "Type", "Archive", "Path", "Attributes", "Complete"
-                    })
-                    {
-                        final Class[] types = {
-                                Object.class, Integer.class, String.class, Object.class, String.class, Object.class, Boolean.class
-                        };
-                        final boolean[] canEdit = { false, false, false, false, false, false, false };
-
-                        @Override
-                        public Class getColumnClass(int columnIndex) {
-                            return types[columnIndex];
-                        }
-
-                        @Override
-                        public boolean isCellEditable(int rowIndex, int columnIndex) {
-                            return canEdit[columnIndex];
-                        }
-                    });
-                    setDefaultEditor(Object.class, new DefaultCellEditor(new JTextField()) {
-                        @Override
-                        public Component getTableCellEditorComponent(JTable table,
-                                                                     Object value,
-                                                                     boolean isSelected,
-                                                                     int row,
-                                                                     int column)
-                        {
-                            Object val = table.getValueAt(row, 0);
-                            if(val instanceof ExtendedVFile) {
-                                directoryChanged((ExtendedVFile) val);
-                            }
-                            return null;
-                        }
-                    });
-                    setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
-                        @Override
-                        public Component getTableCellRendererComponent(JTable table,
-                                                                       Object value,
-                                                                       boolean isSelected,
-                                                                       boolean hasFocus,
-                                                                       int row,
-                                                                       int column)
-                        {
-                            Component comp = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                            if(comp instanceof JLabel) {
-                                JLabel label = (JLabel) comp;
-                                if(value instanceof ViewableData) {
-                                    ViewableData data = (ViewableData) value;
-                                    label.setIcon(null);
-                                    label.setIcon(data.getIcon());
-                                    label.setText(data.toString());
-                                    return label;
-                                }
-                            }
-                            return comp;
-                        }
-                    });
-                }}), BorderLayout.CENTER);
-            }});
+            }}), BorderLayout.CENTER);
         }};
     }
 
-    protected Frame getFrame() {
-        return null;
+    /**
+     * @return the selected files, last in, first out
+     */
+    protected List<? extends SimpleVFile> getSelected() {
+        LinkedList<SimpleVFile> ret = new LinkedList<>();
+        for(TreePath treePath : table.getTreeSelectionModel().getSelectionPaths()) {
+            Object lastPathComponent = treePath.getLastPathComponent();
+            if(lastPathComponent instanceof SimpleVFile) {
+                ret.addFirst((SimpleVFile) lastPathComponent);
+            }
+        }
+        return ret;
+    }
+
+    protected Frame getFrame(Component c) {
+        if(c == null) {
+            return JOptionPane.getRootFrame();
+        } else if(c instanceof Frame) {
+            return (Frame) c;
+        } else {
+            return getFrame(c.getParent());
+        }
     }
 
     protected void open() {
         try {
-            File[] fs = new NativeFileChooser().setParent(getFrame())
+            File[] fs = new NativeFileChooser().setParent(getFrame(this))
                                                .setTitle("Open archive")
                                                .setDirectory(SteamUtils.getSteamApps())
                                                .setMultiSelectionEnabled(true)
@@ -353,30 +270,9 @@ public class ArchiveExplorer extends JPanel {
         }
     }
 
-    protected void directoryChanged(TreeSelectionEvent evt) {
-        TreePath selection = evt.getNewLeadSelectionPath();
-        if(selection == null) {
-            tableModel.setRowCount(0);
-            return;
-        }
-        Object node = selection.getLastPathComponent();
-        if(!( node instanceof DefaultMutableTreeNode )) {
-            return;
-        }
-        Object obj = ( (DefaultMutableTreeNode) node ).getUserObject();
-        ExtendedVFile dir = null;
-        if(obj instanceof ExtendedVFile) {
-            dir = (ExtendedVFile) obj;
-        }
-        if(dir == null) {
-            return;
-        }
-        directoryChanged(dir);
-    }
-
-    protected void extract(List<ExtendedVFile> items) {
+    protected void extract(List<? extends SimpleVFile> items) {
         try {
-            File[] outs = new NativeFileChooser().setParent(getFrame())
+            File[] outs = new NativeFileChooser().setParent(getFrame(this))
                                                  .setTitle("Select extraction directory")
                                                  .setMultiSelectionEnabled(false)
                                                  .setDialogType(BaseFileChooser.DialogType.OPEN_DIALOG)
@@ -386,7 +282,7 @@ public class ArchiveExplorer extends JPanel {
                 return;
             }
             File out = outs[0];
-            for(ExtendedVFile e : items) {
+            for(SimpleVFile e : items) {
                 try {
                     e.extract(out);
                 } catch(IOException ex) {
@@ -399,85 +295,50 @@ public class ArchiveExplorer extends JPanel {
         }
     }
 
-    protected void treeClicked(MouseEvent evt) {
-        if(SwingUtilities.isRightMouseButton(evt)) {
-            TreePath clicked = tree.getPathForLocation(evt.getX(), evt.getY());
-            if(clicked == null) {
-                return;
+    protected void open(SimpleVFile e) {
+        File dir = new File(System.getProperty("java.io.tmpdir"));
+        File f = new File(dir, e.getName());
+        try {
+            e.extract(dir);
+            f.deleteOnExit();
+            if(!OS.isLinux()) {
+                Desktop.getDesktop().open(f);
+            } else {
+                Runtime.getRuntime().exec(new String[] { "xdg-open", f.getPath() });
             }
-            if(( tree.getSelectionPaths() == null ) || !Arrays.asList(tree.getSelectionPaths()).contains(clicked)) {
-                tree.setSelectionPath(clicked);
-            }
-            toExtract.clear();
-            TreePath[] paths = tree.getSelectionPaths();
-            for(TreePath p : paths) {
-                if(!( p.getLastPathComponent() instanceof DefaultMutableTreeNode )) {
-                    return;
-                }
-                Object userObject = ( (DefaultMutableTreeNode) p.getLastPathComponent() ).getUserObject();
-                if(userObject instanceof ExtendedVFile) {
-                    selectedArchive = (ExtendedVFile) userObject;
-                    toExtract.add(selectedArchive);
-                }
-            }
-            extractablesUpdated();
-            popupMenu.show(tree, evt.getX(), evt.getY());
+        } catch(IOException ex) {
+            LOG.log(Level.SEVERE, null, ex);
         }
     }
 
     protected void tableClicked(MouseEvent evt) {
-        int row = table.rowAtPoint(evt.getPoint());
-        if(row == -1) {
-            return;
-        }
-        int[] selectedRows = table.getSelectedRows();
-        Arrays.sort(selectedRows);
-        if(Arrays.binarySearch(selectedRows, row) < 0) {
-            table.setRowSelectionInterval(row, row);
-        }
-        toExtract.clear();
-        int[] selected = table.getSelectedRows();
-        for(int r : selected) {
-            Object userObject = tableModel.getValueAt(table.convertRowIndexToModel(r), 0);
-            if(userObject instanceof ExtendedVFile) {
-                toExtract.add((ExtendedVFile) userObject);
-            }
-        }
-        selectedArchive = null;
-        extractablesUpdated();
+        List<? extends SimpleVFile> selected = getSelected();
+        if(selected.isEmpty()) return;
         if(SwingUtilities.isRightMouseButton(evt)) {
+            extractMenuItem.setEnabled(true);
             popupMenu.show(table, evt.getX(), evt.getY());
         } else if(SwingUtilities.isLeftMouseButton(evt) && ( evt.getClickCount() >= 2 )) {
-            ExtendedVFile e = toExtract.get(0);
-            File dir = new File(System.getProperty("java.io.tmpdir"));
-            File f = new File(dir, e.getName());
-            try {
-                e.extract(dir);
-                f.deleteOnExit();
-                if(!OS.isLinux()) {
-                    Desktop.getDesktop().open(f);
-                } else {
-                    Runtime.getRuntime().exec(new String[] { "xdg-open", f.getPath() });
-                }
-            } catch(IOException ex) {
-                LOG.log(Level.SEVERE, null, ex);
-            }
+            open(selected.get(0));
         }
     }
 
-    protected void properties() {
-        String title;
-        String message = "";
-        if(selectedArchive != null) {
-            title = selectedArchive.toString();
-            //            message = "V" + selectedArchive.header.applicationVersion + "\n";
-        } else {
-            ExtendedVFile last = toExtract.get(toExtract.size() - 1);
-            title = last.getName();
-            message += "Entry: " + last.getAbsoluteName() + '\n';
-            message += last.getChecksum() + " vs " + last.calculateChecksum() + '\n';
+    protected void properties(List<? extends SimpleVFile> list) {
+        if(list.isEmpty()) return;
+        SimpleVFile selected = list.get(0);
+        if(selected instanceof ExtendedVFile) {
+            ExtendedVFile ext = (ExtendedVFile) selected;
+            String title;
+            String message = "";
+            //        if(selectedArchive != null) {
+            //            title = selectedArchive.toString();
+            //            //            message = "V" + selectedArchive.header.applicationVersion + "\n";
+            //        } else {
+            title = ext.getName();
+            message += "Entry: " + ext.getAbsoluteName() + '\n';
+            message += ext.getChecksum() + " vs " + ext.calculateChecksum() + '\n';
+            //        }
+            JOptionPane.showMessageDialog(this, message, title, JOptionPane.INFORMATION_MESSAGE);
         }
-        JOptionPane.showMessageDialog(this, message, title, JOptionPane.INFORMATION_MESSAGE);
     }
 
     protected void mount(int appID) {
@@ -485,6 +346,111 @@ public class ArchiveExplorer extends JPanel {
             addArchive(ACF.fromManifest(appID));
         } catch(FileNotFoundException ex) {
             LOG.log(Level.SEVERE, null, ex);
+        }
+    }
+
+    private class ArchiveTreeTableModel extends AbstractTreeTableModel {
+
+        final   String[]                    columns  = new String[] {
+                "Name", "Size", "Type", "Archive", "Path", "Attributes", "Complete"
+        };
+        final   Class[]                     types    = new Class[] {
+                String.class, Integer.class, String.class, Object.class, String.class, Object.class, Boolean.class
+        };
+        private List<? extends SimpleVFile> archives = Collections.emptyList();
+
+        public ArchiveTreeTableModel(List<? extends SimpleVFile> top) {
+            this();
+            this.archives = top;
+        }
+
+        public ArchiveTreeTableModel() {
+            super(new Object());
+        }
+
+        @Override
+        public int getColumnCount() {
+            return columns.length;
+        }
+
+        @Override
+        public Object getValueAt(Object node, int column) {
+            if(node instanceof SimpleVFile) {
+                SimpleVFile simple = (SimpleVFile) node;
+                switch(column) {
+                    case 0:
+                        return simple;
+                    case 1:
+                        return simple.length();
+                    case 2:
+                        return FileUtils.extension(simple.getName());
+                    case 4:
+                        return simple.getPath();
+                }
+                if(simple instanceof ExtendedVFile) {
+                    ExtendedVFile extended = (ExtendedVFile) simple;
+                    switch(column) {
+                        case 3:
+                            return extended.getRoot();
+                        case 5:
+                            return extended.getAttributes();
+                        case 6:
+                            return extended.isComplete();
+                    }
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public Class<?> getColumnClass(int column) {
+            return types[column];
+        }
+
+        @Override
+        public String getColumnName(int column) {
+            return columns[column];
+        }
+
+        @Override
+        public boolean isCellEditable(Object node, int columnIndex) {
+            return false;
+        }
+
+        @Override
+        public boolean isLeaf(Object node) {
+            if(node instanceof SimpleVFile) {
+                return ( (SimpleVFile) node ).children().size() == 0;
+            }
+            return false;
+        }
+
+        @Override
+        public Object getChild(Object parent, int index) {
+            if(parent instanceof SimpleVFile) {
+                SimpleVFile dir = (SimpleVFile) parent;
+                return new ArrayList<>(dir.children()).get(index);
+            }
+            return archives.get(index);
+        }
+
+        @Override
+        public int getChildCount(Object parent) {
+            if(parent instanceof SimpleVFile) {
+                SimpleVFile dir = (SimpleVFile) parent;
+                return dir.children().size();
+            }
+            return archives.size();
+        }
+
+        @SuppressWarnings("SuspiciousMethodCalls")
+        @Override
+        public int getIndexOfChild(final Object parent, final Object child) {
+            if(parent instanceof SimpleVFile) {
+                SimpleVFile dir = (SimpleVFile) parent;
+                return new ArrayList<>(dir.children()).indexOf(child);
+            }
+            return archives.indexOf(child);
         }
     }
 }
