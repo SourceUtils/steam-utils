@@ -32,12 +32,12 @@ import java.util.logging.Logger;
 @SuppressWarnings("serial")
 public class ArchiveExplorer extends JPanel {
 
-    private static final Logger                  LOG      = Logger.getLogger(ArchiveExplorer.class.getName());
+    private static final Logger            LOG      = Logger.getLogger(ArchiveExplorer.class.getName());
     protected final      List<SimpleVFile> archives = new LinkedList<>();
     protected ArchiveTreeTableModel tableModel;
     protected JPopupMenu            popupMenu;
     protected JMenuItem             extractMenuItem;
-    protected JXTreeTable           table;
+    protected JXTreeTable           treeTable;
     protected JMenuBar              menuBar;
 
     public ArchiveExplorer() {
@@ -72,9 +72,9 @@ public class ArchiveExplorer extends JPanel {
 
     protected void addArchive(SimpleVFile a) {
         archives.add(a);
-        table.setTreeTableModel(tableModel = new ArchiveTreeTableModel(archives));
+        treeTable.setTreeTableModel(tableModel = new ArchiveTreeTableModel(archives));
         // hide the last few columns
-        for(int i = 0; i < 3; i++) { table.getColumnExt(4).setVisible(false); }
+        for(int i = 0; i < 3; i++) { treeTable.getColumnExt(4).setVisible(false); }
     }
 
     protected void load(File f) throws IOException {
@@ -119,7 +119,6 @@ public class ArchiveExplorer extends JPanel {
                     children.addAll(a.find(search));
                 }
                 addArchive(searchNode);
-
                 for(SimpleVFile c : children) {
                     if(!c.isDirectory()) {
                         publish(c);
@@ -204,7 +203,7 @@ public class ArchiveExplorer extends JPanel {
                     });
                 }}, BorderLayout.EAST);
             }}, BorderLayout.NORTH);
-            add(new JScrollPane(table = new JXTreeTable() {{
+            add(new JScrollPane(treeTable = new JXTreeTable() {{
                 setLargeModel(true);
                 setColumnControlVisible(true);
                 setHorizontalScrollEnabled(true);
@@ -217,6 +216,35 @@ public class ArchiveExplorer extends JPanel {
                         tableClicked(evt);
                     }
                 });
+                addKeyListener(new KeyAdapter() {
+                    @Override
+                    public void keyPressed(final KeyEvent evt) {
+                        int selectedRow = treeTable.getSelectedRow();
+                        ListSelectionModel selection = treeTable.getSelectionModel();
+                        switch(evt.getKeyCode()) {
+                            case KeyEvent.VK_RIGHT:
+                                treeTable.expandRow(selectedRow);
+                                selection.setSelectionInterval(selectedRow + 1, selectedRow + 1);
+                                break;
+                            case KeyEvent.VK_LEFT:
+                                if(treeTable.isExpanded(selectedRow)) {
+                                    treeTable.collapseRow(selectedRow);
+                                } else {
+                                    // find last deepest node above this one
+                                    TreePath pathForRow = treeTable.getPathForRow(selectedRow);
+                                    TreePath parentPath = pathForRow.getParentPath();
+                                    int currentDepth = pathForRow.getPathCount();
+                                    for(int i = selectedRow; i >= 0; i--) {
+                                        selection.setSelectionInterval(i, i);
+                                        TreePath pathForPrevious = treeTable.getPathForRow(i);
+                                        if(pathForPrevious.getPathCount() > currentDepth) break;
+                                        if(pathForPrevious == parentPath) break;
+                                    }
+                                }
+                                break;
+                        }
+                    }
+                });
             }}), BorderLayout.CENTER);
         }};
     }
@@ -226,7 +254,7 @@ public class ArchiveExplorer extends JPanel {
      */
     protected List<? extends SimpleVFile> getSelected() {
         LinkedList<SimpleVFile> ret = new LinkedList<>();
-        for(TreePath treePath : table.getTreeSelectionModel().getSelectionPaths()) {
+        for(TreePath treePath : treeTable.getTreeSelectionModel().getSelectionPaths()) {
             Object lastPathComponent = treePath.getLastPathComponent();
             if(lastPathComponent instanceof SimpleVFile) {
                 ret.addFirst((SimpleVFile) lastPathComponent);
@@ -315,10 +343,24 @@ public class ArchiveExplorer extends JPanel {
         List<? extends SimpleVFile> selected = getSelected();
         if(selected.isEmpty()) return;
         if(SwingUtilities.isRightMouseButton(evt)) {
+            Point p = evt.getPoint();
+            int rowNumber = treeTable.rowAtPoint(p);
+            ListSelectionModel model = treeTable.getSelectionModel();
+            model.setSelectionInterval(rowNumber, rowNumber);
             extractMenuItem.setEnabled(true);
-            popupMenu.show(table, evt.getX(), evt.getY());
+            popupMenu.show(treeTable, evt.getX(), evt.getY());
         } else if(SwingUtilities.isLeftMouseButton(evt) && ( evt.getClickCount() >= 2 )) {
-            open(selected.get(0));
+            SimpleVFile file = selected.get(0);
+            if(file.isDirectory()) {
+                TreePath path = treeTable.getPathForLocation(evt.getX(), evt.getY());
+                if(treeTable.isExpanded(path)) {
+                    treeTable.collapsePath(path);
+                } else {
+                    treeTable.expandPath(path);
+                }
+            } else {
+                open(file);
+            }
         }
     }
 
