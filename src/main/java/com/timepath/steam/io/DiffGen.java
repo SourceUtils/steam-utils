@@ -57,7 +57,7 @@ class DiffGen {
             }
         } else {
             out.createNewFile();
-            InputStream is = v.stream();
+            InputStream is = v.openStream();
             FileOutputStream fos = new FileOutputStream(out);
             BufferedOutputStream os = new BufferedOutputStream(fos);
             byte[] buf = new byte[8 * M]; // r/w buffer

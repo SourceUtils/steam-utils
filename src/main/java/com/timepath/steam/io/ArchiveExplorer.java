@@ -107,7 +107,7 @@ public class ArchiveExplorer extends JPanel {
             }
 
             @Override
-            public InputStream stream() {
+            public InputStream openStream() {
                 return null;
             }
         };
@@ -116,7 +116,7 @@ public class ArchiveExplorer extends JPanel {
             protected Void doInBackground() throws Exception {
                 Collection<SimpleVFile> children = new LinkedList<>();
                 for(SimpleVFile a : archives) {
-                    children.addAll(a.find(search, a));
+                    children.addAll(a.find(search));
                 }
                 addArchive(searchNode);
 
@@ -420,7 +420,7 @@ public class ArchiveExplorer extends JPanel {
         @Override
         public boolean isLeaf(Object node) {
             if(node instanceof SimpleVFile) {
-                return ( (SimpleVFile) node ).children().size() == 0;
+                return ( (SimpleVFile) node ).list().size() == 0;
             }
             return false;
         }
@@ -429,7 +429,7 @@ public class ArchiveExplorer extends JPanel {
         public Object getChild(Object parent, int index) {
             if(parent instanceof SimpleVFile) {
                 SimpleVFile dir = (SimpleVFile) parent;
-                return new ArrayList<>(dir.children()).get(index);
+                return new ArrayList<>(dir.list()).get(index);
             }
             return archives.get(index);
         }
@@ -438,7 +438,7 @@ public class ArchiveExplorer extends JPanel {
         public int getChildCount(Object parent) {
             if(parent instanceof SimpleVFile) {
                 SimpleVFile dir = (SimpleVFile) parent;
-                return dir.children().size();
+                return dir.list().size();
             }
             return archives.size();
         }
@@ -448,7 +448,7 @@ public class ArchiveExplorer extends JPanel {
         public int getIndexOfChild(final Object parent, final Object child) {
             if(parent instanceof SimpleVFile) {
                 SimpleVFile dir = (SimpleVFile) parent;
-                return new ArrayList<>(dir.children()).indexOf(child);
+                return new ArrayList<>(dir.list()).indexOf(child);
             }
             return archives.indexOf(child);
         }
