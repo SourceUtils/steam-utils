@@ -18,7 +18,6 @@ import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
@@ -386,7 +385,7 @@ public class ArchiveExplorer extends JPanel {
     protected void mount(int appID) {
         try {
             addArchive(ACF.fromManifest(appID));
-        } catch(FileNotFoundException ex) {
+        } catch(IOException ex) {
             LOG.log(Level.SEVERE, null, ex);
         }
     }

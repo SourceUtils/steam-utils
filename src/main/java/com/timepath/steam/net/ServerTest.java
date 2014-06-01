@@ -2,14 +2,13 @@ package com.timepath.steam.net;
 
 import com.timepath.DateUtils;
 import com.timepath.steam.SteamUtils;
-import com.timepath.steam.io.VDF1;
-import com.timepath.steam.io.util.VDFNode1;
+import com.timepath.steam.io.VDF;
+import com.timepath.steam.io.VDFNode;
 import com.timepath.steam.net.MasterServer.Region;
 
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -58,35 +57,20 @@ public class ServerTest extends JPanel {
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
-                VDF1 vdf = new VDF1();
-                vdf.readExternal(new FileInputStream(new File(SteamUtils.getUserData(), "7/remote/serverbrowser_hist.vdf")));
-                VDFNode1 filters = vdf.getRoot().get("Filters");
-                VDFNode1 favoritesArray = filters.get("Favorites");
-                VDFNode1 historyArray = filters.get("History");
-                long lastPlayed = 0;
-                for(int i = 0; i < favoritesArray.getChildCount(); i++) {
-                    VDFNode1 n = favoritesArray.get(i);
-                    favorites.append("Favorite " + n.getKey() + '\n');
-                    favorites.append("Name: " + n.get("name").getValue() + '\n');
-                    favorites.append("Address: " + n.get("address").getValue() + '\n');
-                    long newLastPlayed = Long.parseLong(n.get("lastplayed").getValue());
-                    if(newLastPlayed < lastPlayed) {
-                        favorites.append("Out of order" + '\n');
-                    }
-                    lastPlayed = newLastPlayed;
+                VDFNode vdf = VDF.load(new File(SteamUtils.getUserData(), "7/remote/serverbrowser_hist.vdf"));
+                VDFNode filters = vdf.get("Filters");
+                for(VDFNode n : filters.get("Favorites").getNodes()) {
+                    favorites.append("Favorite " + n.getCustom() + '\n');
+                    favorites.append("Name: " + n.getValue("name") + '\n');
+                    favorites.append("Address: " + n.getValue("address") + '\n');
+                    long lastPlayed = Long.parseLong((String) n.getValue("LastPlayed"));
                     favorites.append("Last Played: " + DateUtils.parse(lastPlayed) + '\n' + '\n');
                 }
-                lastPlayed = 0;
-                for(int i = 0; i < historyArray.getChildCount(); i++) {
-                    VDFNode1 n = historyArray.get(i);
-                    history.append("History " + n.getKey() + '\n');
-                    history.append("Name: " + n.get("name").getValue() + '\n');
-                    history.append("Address: " + n.get("address").getValue() + '\n');
-                    long newLastPlayed = Long.parseLong(n.get("lastplayed").getValue());
-                    if(newLastPlayed < lastPlayed) {
-                        history.append("Out of order" + '\n');
-                    }
-                    lastPlayed = newLastPlayed;
+                for(VDFNode n : filters.get("History").getNodes()) {
+                    history.append("History " + n.getCustom() + '\n');
+                    history.append("Name: " + n.getValue("name") + '\n');
+                    history.append("Address: " + n.getValue("address") + '\n');
+                    long lastPlayed = Long.parseLong((String) n.getValue("LastPlayed"));
                     history.append("Last Played: " + DateUtils.parse(lastPlayed) + '\n' + '\n');
                 }
                 return null;
