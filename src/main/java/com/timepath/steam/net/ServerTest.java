@@ -105,7 +105,7 @@ public class ServerTest extends JPanel {
     public ServerTest loadServer(SourceServer ss) {
         final JTextArea test = new JTextArea();
         server.setViewportView(test);
-        test.append("Server: " + ss.address + '\n');
+        test.append("Server: " + ss.getAddress() + '\n');
         try {
             LOG.info("Getting info ...");
             ss.getInfo(new ServerListener() {
