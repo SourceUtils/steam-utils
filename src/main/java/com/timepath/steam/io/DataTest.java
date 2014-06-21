@@ -69,7 +69,7 @@ class DataTest extends JFrame {
                     } else {
                         Object data = t.getTransferData(DataFlavor.javaFileListFlavor);
                         if(data instanceof List) {
-                            for(Object o : (Iterable<? extends Object>) data) {
+                            for(Object o : (Iterable<?>) data) {
                                 if(o instanceof File) {
                                     file = (File) o;
                                 }
