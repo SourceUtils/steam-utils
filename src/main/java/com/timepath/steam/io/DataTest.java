@@ -173,7 +173,7 @@ class DataTest extends JFrame {
                         Blob bin = new Blob();
                         bin.readExternal(DataUtils.mapFile(f));
                         n = bin.getRoot();
-                    } else if(f.getName().toLowerCase().matches("^.*(vdf|res|bin|txt)$")) {
+                    } else if(f.getName().toLowerCase().matches("^.*(vdf|res|bin|txt|styles)$")) {
                         if(VDF.isBinary(f)) {
                             BVDF bin = new BVDF();
                             bin.readExternal(DataUtils.mapFile(f));
