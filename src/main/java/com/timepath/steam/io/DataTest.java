@@ -52,39 +52,51 @@ class DataTest extends JFrame {
                     e.acceptDrop(DnDConstants.ACTION_COPY_OR_MOVE);
                     Transferable t = e.getTransferable();
                     File file = null;
-                    if(OS.isLinux()) {
+                    if (OS.isLinux()) {
                         DataFlavor nixFileDataFlavor = new DataFlavor("text/uri-list;class=java.lang.String");
                         String data = (String) t.getTransferData(nixFileDataFlavor);
-                        for(StringTokenizer st = new StringTokenizer(data, "\r\n"); st.hasMoreTokens(); ) {
+                        for (StringTokenizer st = new StringTokenizer(data, "\r\n"); st.hasMoreTokens(); ) {
                             String token = st.nextToken().trim();
-                            if(token.startsWith("#") || token.isEmpty()) {
+                            if (token.startsWith("#") || token.isEmpty()) {
                                 // comment line, by RFC 2483
                                 continue;
                             }
                             try {
                                 file = new File(new URI(token));
-                            } catch(Exception ignored) {
+                            } catch (Exception ignored) {
                             }
                         }
                     } else {
                         Object data = t.getTransferData(DataFlavor.javaFileListFlavor);
-                        if(data instanceof List) {
-                            for(Object o : (Iterable<?>) data) {
-                                if(o instanceof File) {
+                        if (data instanceof List) {
+                            for (Object o : (Iterable<?>) data) {
+                                if (o instanceof File) {
                                     file = (File) o;
                                 }
                             }
                         }
                     }
-                    if(file != null) {
+                    if (file != null) {
                         open(file);
                     }
-                } catch(ClassNotFoundException | IOException | UnsupportedFlavorException | InvalidDnDOperationException ex) {
+                } catch (ClassNotFoundException | IOException | UnsupportedFlavorException | InvalidDnDOperationException ex) {
                     LOG.log(Level.SEVERE, null, ex);
                 } finally {
                     e.dropComplete(true);
                     repaint();
                 }
+            }
+        });
+    }
+
+    /**
+     * @param args the command line arguments
+     */
+    public static void main(String... args) {
+        EventQueue.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                new DataTest().setVisible(true);
             }
         });
     }
@@ -146,17 +158,17 @@ class DataTest extends JFrame {
     private void openFile(ActionEvent e) {
         try {
             File[] fs = new NativeFileChooser().setDirectory(SteamUtils.getSteam()).setParent(this).setTitle("Open VDF").choose();
-            if(fs == null) {
+            if (fs == null) {
                 return;
             }
             open(fs[0]);
-        } catch(IOException ex) {
+        } catch (IOException ex) {
             Logger.getLogger(DataTest.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
     private void open(final File f) {
-        if(f == null) {
+        if (f == null) {
             LOG.info("File is null");
             return;
         }
@@ -169,12 +181,12 @@ class DataTest extends JFrame {
             protected DefaultMutableTreeNode doInBackground() throws Exception {
                 DefaultMutableTreeNode n = null;
                 try {
-                    if(f.getName().toLowerCase().endsWith(".blob")) {
+                    if (f.getName().toLowerCase().endsWith(".blob")) {
                         Blob bin = new Blob();
                         bin.readExternal(DataUtils.mapFile(f));
                         n = bin.getRoot();
-                    } else if(f.getName().toLowerCase().matches("^.*(vdf|res|bin|txt|styles)$")) {
-                        if(VDF.isBinary(f)) {
+                    } else if (f.getName().toLowerCase().matches("^.*(vdf|res|bin|txt|styles)$")) {
+                        if (VDF.isBinary(f)) {
                             BVDF bin = new BVDF();
                             bin.readExternal(DataUtils.mapFile(f));
                             n = bin.getRoot();
@@ -183,13 +195,13 @@ class DataTest extends JFrame {
                         }
                     } else {
                         JOptionPane.showMessageDialog(DataTest.this,
-                                                      MessageFormat.format("{0} is not supported", f.getAbsolutePath()),
-                                                      "Invalid file",
-                                                      JOptionPane.ERROR_MESSAGE);
+                                MessageFormat.format("{0} is not supported", f.getAbsolutePath()),
+                                "Invalid file",
+                                JOptionPane.ERROR_MESSAGE);
                     }
-                } catch(StackOverflowError e) {
+                } catch (StackOverflowError e) {
                     LOG.warning("Stack Overflow");
-                } catch(Exception e) {
+                } catch (Exception e) {
                     LOG.log(Level.SEVERE, null, e);
                 }
                 return n;
@@ -199,12 +211,12 @@ class DataTest extends JFrame {
             protected void done() {
                 try {
                     DefaultMutableTreeNode n = get();
-                    if(n != null) {
+                    if (n != null) {
                         pseudo.add(n);
                     }
                     model.reload();
                     //                    TreeUtils.expand(DataTest.this.jTree1);
-                } catch(InterruptedException | ExecutionException ex) {
+                } catch (InterruptedException | ExecutionException ex) {
                     Logger.getLogger(DataTest.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
@@ -217,18 +229,5 @@ class DataTest extends JFrame {
 
     private void packageInfo(ActionEvent evt) {
         open(new File(SteamUtils.getSteam() + "/appcache/packageinfo.vdf"));
-    }
-
-    /**
-     * @param args
-     *         the command line arguments
-     */
-    public static void main(String... args) {
-        EventQueue.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                new DataTest().setVisible(true);
-            }
-        });
     }
 }

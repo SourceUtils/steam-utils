@@ -13,7 +13,7 @@ import java.util.logging.Logger;
  */
 class DiffGen {
 
-    private static final Logger   LOG       = Logger.getLogger(DiffGen.class.getName());
+    private static final Logger LOG = Logger.getLogger(DiffGen.class.getName());
     private static final String[] blacklist = {
             ".*/bin",
             ".*/cache",
@@ -30,14 +30,15 @@ class DiffGen {
             ".*tf/voice_ban\\.dt",
             ".*tf/trainingprogress\\.txt"
     };
-    private static final int      K         = 1024, M = K * K, G = M * K;
+    private static final int K = 1024, M = K * K, G = M * K;
 
-    private DiffGen() {}
+    private DiffGen() {
+    }
 
     private static boolean check(File f) {
         String path = f.getPath();
-        for(String r : blacklist) {
-            if(path.matches(r)) {
+        for (String r : blacklist) {
+            if (path.matches(r)) {
                 LOG.info(path);
                 return false;
             }
@@ -47,12 +48,12 @@ class DiffGen {
 
     private static void extract(VFile<? extends VFile> v, File dir) throws IOException {
         File out = new File(dir, v.getName());
-        if(!check(out)) {
+        if (!check(out)) {
             return;
         }
-        if(v.isDirectory()) {
+        if (v.isDirectory()) {
             out.mkdir();
-            for(VFile e : v.list()) {
+            for (VFile e : v.list()) {
                 extract(e, out);
             }
         } else {
@@ -62,7 +63,7 @@ class DiffGen {
             BufferedOutputStream os = new BufferedOutputStream(fos);
             byte[] buf = new byte[8 * M]; // r/w buffer
             int read;
-            while(( read = is.read(buf) ) >= 0) {
+            while ((read = is.read(buf)) >= 0) {
                 os.write(buf, 0, read);
             }
             os.flush();
@@ -71,14 +72,14 @@ class DiffGen {
     }
 
     public static void main(String... args) throws IOException {
-        int[] apps = { 440 };
+        int[] apps = {440};
         File container = new File(System.getProperty("user.home"), "steamtracker");
-        for(int i : apps) {
+        for (int i : apps) {
             File repo = new File(container, String.valueOf(i));
             repo.mkdirs();
             ACF acf = ACF.fromManifest(i);
             Collection<? extends SimpleVFile> files = acf.list();
-            for(SimpleVFile v : files) {
+            for (SimpleVFile v : files) {
                 extract(v, repo);
             }
         }
