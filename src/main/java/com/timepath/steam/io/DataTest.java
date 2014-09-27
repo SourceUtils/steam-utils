@@ -6,6 +6,8 @@ import com.timepath.plaf.x.filechooser.NativeFileChooser;
 import com.timepath.steam.SteamUtils;
 import com.timepath.steam.io.blob.Blob;
 import com.timepath.steam.io.bvdf.BVDF;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -46,17 +48,17 @@ class DataTest extends JFrame {
         initComponents();
         setDropTarget(new DropTarget() {
             @Override
-            public void drop(DropTargetDropEvent e) {
+            public void drop(@NotNull DropTargetDropEvent e) {
                 try {
                     DropTargetContext context = e.getDropTargetContext();
                     e.acceptDrop(DnDConstants.ACTION_COPY_OR_MOVE);
                     Transferable t = e.getTransferable();
-                    File file = null;
+                    @Nullable File file = null;
                     if (OS.isLinux()) {
-                        DataFlavor nixFileDataFlavor = new DataFlavor("text/uri-list;class=java.lang.String");
-                        String data = (String) t.getTransferData(nixFileDataFlavor);
-                        for (StringTokenizer st = new StringTokenizer(data, "\r\n"); st.hasMoreTokens(); ) {
-                            String token = st.nextToken().trim();
+                        @NotNull DataFlavor nixFileDataFlavor = new DataFlavor("text/uri-list;class=java.lang.String");
+                        @NotNull String data = (String) t.getTransferData(nixFileDataFlavor);
+                        for (@NotNull StringTokenizer st = new StringTokenizer(data, "\r\n"); st.hasMoreTokens(); ) {
+                            @NotNull String token = st.nextToken().trim();
                             if (token.startsWith("#") || token.isEmpty()) {
                                 // comment line, by RFC 2483
                                 continue;
@@ -79,7 +81,7 @@ class DataTest extends JFrame {
                     if (file != null) {
                         open(file);
                     }
-                } catch (ClassNotFoundException | IOException | UnsupportedFlavorException | InvalidDnDOperationException ex) {
+                } catch (@NotNull ClassNotFoundException | IOException | UnsupportedFlavorException | InvalidDnDOperationException ex) {
                     LOG.log(Level.SEVERE, null, ex);
                 } finally {
                     e.dropComplete(true);
@@ -102,17 +104,17 @@ class DataTest extends JFrame {
     }
 
     private void initComponents() {
-        JScrollPane jScrollPane1 = new JScrollPane();
+        @NotNull JScrollPane jScrollPane1 = new JScrollPane();
         jTree1 = new JTree();
-        JMenuBar jMenuBar1 = new JMenuBar();
-        JMenu jMenu1 = new JMenu();
-        JMenuItem jMenuItem1 = new JMenuItem();
-        JMenuItem jMenuItem2 = new JMenuItem();
-        JMenuItem jMenuItem3 = new JMenuItem();
+        @NotNull JMenuBar jMenuBar1 = new JMenuBar();
+        @NotNull JMenu jMenu1 = new JMenu();
+        @NotNull JMenuItem jMenuItem1 = new JMenuItem();
+        @NotNull JMenuItem jMenuItem2 = new JMenuItem();
+        @NotNull JMenuItem jMenuItem3 = new JMenuItem();
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("Data viewer");
         setMinimumSize(new Dimension(300, 300));
-        DefaultMutableTreeNode treeNode1 = new DefaultMutableTreeNode("root");
+        @NotNull DefaultMutableTreeNode treeNode1 = new DefaultMutableTreeNode("root");
         jTree1.setModel(new DefaultTreeModel(treeNode1));
         jTree1.setEditable(true);
         jTree1.setLargeModel(true);
@@ -157,7 +159,7 @@ class DataTest extends JFrame {
 
     private void openFile(ActionEvent e) {
         try {
-            File[] fs = new NativeFileChooser().setDirectory(SteamUtils.getSteam()).setParent(this).setTitle("Open VDF").choose();
+            @Nullable File[] fs = new NativeFileChooser().setDirectory(SteamUtils.getSteam()).setParent(this).setTitle("Open VDF").choose();
             if (fs == null) {
                 return;
             }
@@ -167,27 +169,28 @@ class DataTest extends JFrame {
         }
     }
 
-    private void open(final File f) {
+    private void open(@Nullable final File f) {
         if (f == null) {
             LOG.info("File is null");
             return;
         }
         LOG.log(Level.INFO, "File is {0}", f);
-        final DefaultTreeModel model = (DefaultTreeModel) jTree1.getModel();
-        final DefaultMutableTreeNode pseudo = new DefaultMutableTreeNode(f.getPath());
+        @NotNull final DefaultTreeModel model = (DefaultTreeModel) jTree1.getModel();
+        @NotNull final DefaultMutableTreeNode pseudo = new DefaultMutableTreeNode(f.getPath());
         model.setRoot(pseudo);
         new SwingWorker<DefaultMutableTreeNode, Void>() {
+            @Nullable
             @Override
             protected DefaultMutableTreeNode doInBackground() throws Exception {
-                DefaultMutableTreeNode n = null;
+                @Nullable DefaultMutableTreeNode n = null;
                 try {
                     if (f.getName().toLowerCase().endsWith(".blob")) {
-                        Blob bin = new Blob();
+                        @NotNull Blob bin = new Blob();
                         bin.readExternal(DataUtils.mapFile(f));
                         n = bin.getRoot();
                     } else if (f.getName().toLowerCase().matches("^.*(vdf|res|bin|txt|styles)$")) {
                         if (VDF.isBinary(f)) {
-                            BVDF bin = new BVDF();
+                            @NotNull BVDF bin = new BVDF();
                             bin.readExternal(DataUtils.mapFile(f));
                             n = bin.getRoot();
                         } else {
@@ -216,7 +219,7 @@ class DataTest extends JFrame {
                     }
                     model.reload();
                     //                    TreeUtils.expand(DataTest.this.jTree1);
-                } catch (InterruptedException | ExecutionException ex) {
+                } catch (@NotNull InterruptedException | ExecutionException ex) {
                     Logger.getLogger(DataTest.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }

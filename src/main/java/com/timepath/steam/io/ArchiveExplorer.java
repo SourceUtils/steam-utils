@@ -12,6 +12,8 @@ import com.timepath.steam.io.util.ExtendedVFile;
 import com.timepath.vfs.SimpleVFile;
 import org.jdesktop.swingx.JXTreeTable;
 import org.jdesktop.swingx.treetable.AbstractTreeTableModel;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.tree.TreePath;
@@ -50,11 +52,11 @@ public class ArchiveExplorer extends JPanel {
         EventQueue.invokeLater(new Runnable() {
             @Override
             public void run() {
-                JFrame f = new JFrame();
+                @NotNull JFrame f = new JFrame();
                 f.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
                 f.setTitle("Archive Explorer");
                 f.setPreferredSize(new Dimension(800, 500));
-                ArchiveExplorer ae = new ArchiveExplorer();
+                @NotNull ArchiveExplorer ae = new ArchiveExplorer();
                 f.setContentPane(ae);
                 f.setJMenuBar(ae.getMenuBar());
                 f.pack();
@@ -77,9 +79,9 @@ public class ArchiveExplorer extends JPanel {
         }
     }
 
-    protected void load(File f) throws IOException {
-        String ext = FileUtils.extension(f);
-        ExtendedVFile a;
+    protected void load(@NotNull File f) throws IOException {
+        @Nullable String ext = FileUtils.extension(f);
+        @Nullable ExtendedVFile a;
         switch (ext) {
             case "gcf":
                 a = new GCF(f);
@@ -95,31 +97,34 @@ public class ArchiveExplorer extends JPanel {
     }
 
     protected void search(final String search) {
-        final SimpleVFile searchNode = new SimpleVFile() {
+        @NotNull final SimpleVFile searchNode = new SimpleVFile() {
             @Override
             public boolean isDirectory() {
                 return true;
             }
 
+            @NotNull
             @Override
             public String getName() {
                 return "Search: " + search;
             }
 
+            @Nullable
             @Override
             public InputStream openStream() {
                 return null;
             }
         };
         new SwingWorker<Void, SimpleVFile>() {
+            @Nullable
             @Override
             protected Void doInBackground() throws Exception {
-                Collection<SimpleVFile> children = new LinkedList<>();
-                for (SimpleVFile a : archives) {
+                @NotNull Collection<SimpleVFile> children = new LinkedList<>();
+                for (@NotNull SimpleVFile a : archives) {
                     children.addAll(a.find(search));
                 }
                 addArchive(searchNode);
-                for (SimpleVFile c : children) {
+                for (@NotNull SimpleVFile c : children) {
                     if (!c.isDirectory()) {
                         publish(c);
                     }
@@ -128,7 +133,7 @@ public class ArchiveExplorer extends JPanel {
             }
 
             @Override
-            protected void process(List<SimpleVFile> chunks) {
+            protected void process(@NotNull List<SimpleVFile> chunks) {
                 for (SimpleVFile c : chunks) {
                     searchNode.add(c);
                 }
@@ -141,6 +146,7 @@ public class ArchiveExplorer extends JPanel {
         }.execute();
     }
 
+    @NotNull
     protected Component initComponents() {
         setLayout(new BorderLayout());
         menuBar = new JMenuBar() {{
@@ -185,7 +191,7 @@ public class ArchiveExplorer extends JPanel {
         }};
         return new JPanel(new BorderLayout()) {{
             add(new JPanel(new BorderLayout()) {{
-                final JTextField field;
+                @NotNull final JTextField field;
                 add(field = new JTextField() {{
                     addActionListener(new ActionListener() {
                         @Override
@@ -212,13 +218,13 @@ public class ArchiveExplorer extends JPanel {
                 getColumnModel().getSelectionModel().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
                 addMouseListener(new MouseAdapter() {
                     @Override
-                    public void mouseClicked(MouseEvent evt) {
+                    public void mouseClicked(@NotNull MouseEvent evt) {
                         tableClicked(evt);
                     }
                 });
                 addKeyListener(new KeyAdapter() {
                     @Override
-                    public void keyPressed(final KeyEvent evt) {
+                    public void keyPressed(@NotNull final KeyEvent evt) {
                         int selectedRow = treeTable.getSelectedRow();
                         ListSelectionModel selection = treeTable.getSelectionModel();
                         switch (evt.getKeyCode()) {
@@ -252,9 +258,10 @@ public class ArchiveExplorer extends JPanel {
     /**
      * @return the selected files, last in, first out
      */
+    @NotNull
     protected List<? extends SimpleVFile> getSelected() {
-        LinkedList<SimpleVFile> ret = new LinkedList<>();
-        for (TreePath treePath : treeTable.getTreeSelectionModel().getSelectionPaths()) {
+        @NotNull LinkedList<SimpleVFile> ret = new LinkedList<>();
+        for (@NotNull TreePath treePath : treeTable.getTreeSelectionModel().getSelectionPaths()) {
             Object lastPathComponent = treePath.getLastPathComponent();
             if (lastPathComponent instanceof SimpleVFile) {
                 ret.addFirst((SimpleVFile) lastPathComponent);
@@ -263,7 +270,8 @@ public class ArchiveExplorer extends JPanel {
         return ret;
     }
 
-    protected Frame getFrame(Component c) {
+    @Nullable
+    protected Frame getFrame(@Nullable Component c) {
         if (c == null) {
             return JOptionPane.getRootFrame();
         } else if (c instanceof Frame) {
@@ -275,7 +283,7 @@ public class ArchiveExplorer extends JPanel {
 
     protected void open() {
         try {
-            File[] fs = new NativeFileChooser().setParent(getFrame(this))
+            @Nullable File[] fs = new NativeFileChooser().setParent(getFrame(this))
                     .setTitle("Open archive")
                     .setDirectory(SteamUtils.getSteamApps())
                     .setMultiSelectionEnabled(true)
@@ -286,7 +294,7 @@ public class ArchiveExplorer extends JPanel {
             if (fs == null) {
                 return;
             }
-            for (File f : fs) {
+            for (@Nullable File f : fs) {
                 if (f == null) {
                     LOG.warning("File is null");
                     return;
@@ -298,9 +306,9 @@ public class ArchiveExplorer extends JPanel {
         }
     }
 
-    protected void extract(List<? extends SimpleVFile> items) {
+    protected void extract(@NotNull List<? extends SimpleVFile> items) {
         try {
-            File[] outs = new NativeFileChooser().setParent(getFrame(this))
+            @Nullable File[] outs = new NativeFileChooser().setParent(getFrame(this))
                     .setTitle("Select extraction directory")
                     .setMultiSelectionEnabled(false)
                     .setDialogType(BaseFileChooser.DialogType.OPEN_DIALOG)
@@ -310,7 +318,7 @@ public class ArchiveExplorer extends JPanel {
                 return;
             }
             File out = outs[0];
-            for (SimpleVFile e : items) {
+            for (@NotNull SimpleVFile e : items) {
                 try {
                     e.extract(out);
                 } catch (IOException ex) {
@@ -323,9 +331,9 @@ public class ArchiveExplorer extends JPanel {
         }
     }
 
-    protected void open(SimpleVFile e) {
-        File dir = new File(System.getProperty("java.io.tmpdir"));
-        File f = new File(dir, e.getName());
+    protected void open(@NotNull SimpleVFile e) {
+        @NotNull File dir = new File(System.getProperty("java.io.tmpdir"));
+        @NotNull File f = new File(dir, e.getName());
         try {
             e.extract(dir);
             f.deleteOnExit();
@@ -339,11 +347,11 @@ public class ArchiveExplorer extends JPanel {
         }
     }
 
-    protected void tableClicked(MouseEvent evt) {
-        List<? extends SimpleVFile> selected = getSelected();
+    protected void tableClicked(@NotNull MouseEvent evt) {
+        @NotNull List<? extends SimpleVFile> selected = getSelected();
         if (selected.isEmpty()) return;
         if (SwingUtilities.isRightMouseButton(evt)) {
-            Point p = evt.getPoint();
+            @NotNull Point p = evt.getPoint();
             int rowNumber = treeTable.rowAtPoint(p);
             ListSelectionModel model = treeTable.getSelectionModel();
             model.setSelectionInterval(rowNumber, rowNumber);
@@ -364,13 +372,13 @@ public class ArchiveExplorer extends JPanel {
         }
     }
 
-    protected void properties(List<? extends SimpleVFile> list) {
+    protected void properties(@NotNull List<? extends SimpleVFile> list) {
         if (list.isEmpty()) return;
         SimpleVFile selected = list.get(0);
         if (selected instanceof ExtendedVFile) {
-            ExtendedVFile ext = (ExtendedVFile) selected;
-            String title;
-            String message = "";
+            @NotNull ExtendedVFile ext = (ExtendedVFile) selected;
+            @Nullable String title;
+            @NotNull String message = "";
             //        if(selectedArchive != null) {
             //            title = selectedArchive.toString();
             //            //            message = "V" + selectedArchive.header.applicationVersion + "\n";
@@ -415,10 +423,11 @@ public class ArchiveExplorer extends JPanel {
             return columns.length;
         }
 
+        @Nullable
         @Override
         public Object getValueAt(Object node, int column) {
             if (node instanceof SimpleVFile) {
-                SimpleVFile simple = (SimpleVFile) node;
+                @NotNull SimpleVFile simple = (SimpleVFile) node;
                 switch (column) {
                     case 0:
                         return simple;
@@ -430,7 +439,7 @@ public class ArchiveExplorer extends JPanel {
                         return simple.getPath();
                 }
                 if (simple instanceof ExtendedVFile) {
-                    ExtendedVFile extended = (ExtendedVFile) simple;
+                    @NotNull ExtendedVFile extended = (ExtendedVFile) simple;
                     switch (column) {
                         case 3:
                             return extended.getRoot();
@@ -470,7 +479,7 @@ public class ArchiveExplorer extends JPanel {
         @Override
         public Object getChild(Object parent, int index) {
             if (parent instanceof SimpleVFile) {
-                SimpleVFile dir = (SimpleVFile) parent;
+                @NotNull SimpleVFile dir = (SimpleVFile) parent;
                 return new ArrayList<>(dir.list()).get(index);
             }
             return archives.get(index);
@@ -479,7 +488,7 @@ public class ArchiveExplorer extends JPanel {
         @Override
         public int getChildCount(Object parent) {
             if (parent instanceof SimpleVFile) {
-                SimpleVFile dir = (SimpleVFile) parent;
+                @NotNull SimpleVFile dir = (SimpleVFile) parent;
                 return dir.list().size();
             }
             return archives.size();
@@ -489,7 +498,7 @@ public class ArchiveExplorer extends JPanel {
         @Override
         public int getIndexOfChild(final Object parent, final Object child) {
             if (parent instanceof SimpleVFile) {
-                SimpleVFile dir = (SimpleVFile) parent;
+                @NotNull SimpleVFile dir = (SimpleVFile) parent;
                 return new ArrayList<>(dir.list()).indexOf(child);
             }
             return archives.indexOf(child);

@@ -3,6 +3,8 @@ package com.timepath.steam.io;
 import com.timepath.steam.io.storage.ACF;
 import com.timepath.vfs.SimpleVFile;
 import com.timepath.vfs.VFile;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
 import java.util.Collection;
@@ -35,9 +37,9 @@ class DiffGen {
     private DiffGen() {
     }
 
-    private static boolean check(File f) {
-        String path = f.getPath();
-        for (String r : blacklist) {
+    private static boolean check(@NotNull File f) {
+        @NotNull String path = f.getPath();
+        for (@NotNull String r : blacklist) {
             if (path.matches(r)) {
                 LOG.info(path);
                 return false;
@@ -46,22 +48,22 @@ class DiffGen {
         return true;
     }
 
-    private static void extract(VFile<? extends VFile> v, File dir) throws IOException {
-        File out = new File(dir, v.getName());
+    private static void extract(@NotNull VFile<? extends VFile> v, File dir) throws IOException {
+        @NotNull File out = new File(dir, v.getName());
         if (!check(out)) {
             return;
         }
         if (v.isDirectory()) {
             out.mkdir();
-            for (VFile e : v.list()) {
+            for (@NotNull VFile e : v.list()) {
                 extract(e, out);
             }
         } else {
             out.createNewFile();
-            InputStream is = v.openStream();
-            FileOutputStream fos = new FileOutputStream(out);
-            BufferedOutputStream os = new BufferedOutputStream(fos);
-            byte[] buf = new byte[8 * M]; // r/w buffer
+            @Nullable InputStream is = v.openStream();
+            @NotNull FileOutputStream fos = new FileOutputStream(out);
+            @NotNull BufferedOutputStream os = new BufferedOutputStream(fos);
+            @NotNull byte[] buf = new byte[8 * M]; // r/w buffer
             int read;
             while ((read = is.read(buf)) >= 0) {
                 os.write(buf, 0, read);
@@ -72,14 +74,14 @@ class DiffGen {
     }
 
     public static void main(String... args) throws IOException {
-        int[] apps = {440};
-        File container = new File(System.getProperty("user.home"), "steamtracker");
+        @NotNull int[] apps = {440};
+        @NotNull File container = new File(System.getProperty("user.home"), "steamtracker");
         for (int i : apps) {
-            File repo = new File(container, String.valueOf(i));
+            @NotNull File repo = new File(container, String.valueOf(i));
             repo.mkdirs();
-            ACF acf = ACF.fromManifest(i);
-            Collection<? extends SimpleVFile> files = acf.list();
-            for (SimpleVFile v : files) {
+            @Nullable ACF acf = ACF.fromManifest(i);
+            @Nullable Collection<? extends SimpleVFile> files = acf.list();
+            for (@NotNull SimpleVFile v : files) {
                 extract(v, repo);
             }
         }
