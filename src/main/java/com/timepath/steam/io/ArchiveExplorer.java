@@ -8,7 +8,7 @@ import com.timepath.steam.SteamUtils;
 import com.timepath.steam.io.gcf.GCF;
 import com.timepath.steam.io.storage.ACF;
 import com.timepath.steam.io.storage.VPK;
-import com.timepath.steam.io.util.ExtendedVFile;
+import com.timepath.vfs.provider.ExtendedVFile;
 import com.timepath.vfs.SimpleVFile;
 import org.jdesktop.swingx.JXTreeTable;
 import org.jdesktop.swingx.treetable.AbstractTreeTableModel;
