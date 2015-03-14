@@ -43,7 +43,7 @@ class ServerTest : JPanel() {
             })
             Thread(object : Runnable {
                 override fun run() {
-                    server.append("Server: ${ss.getAddress()}\n")
+                    server.append("Server: ${ss.address}\n")
                     try {
                         log.info("Getting info ...")
                         ss.getInfo(object : ServerListener {

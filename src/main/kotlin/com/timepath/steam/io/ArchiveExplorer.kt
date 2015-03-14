@@ -366,7 +366,7 @@ public class ArchiveExplorer : JPanel() {
 
     protected fun mount(appID: Int) {
         try {
-            addArchive(ACF.fromManifest(appID))
+            addArchive(ACF.fromManifest(appID)!!)
         } catch (ex: IOException) {
             LOG.log(Level.SEVERE, null, ex)
         }
