@@ -71,10 +71,10 @@ private() : JFrame() {
                         }
                     } else {
                         val data = t.getTransferData(DataFlavor.javaFileListFlavor)
-                        if (data is List<*>) {
-                            for (o in data as Iterable<*>) {
+                        if (data is Iterable<*>) {
+                            for (o in data) {
                                 if (o is File) {
-                                    file = o as File
+                                    file = o
                                 }
                             }
                         }

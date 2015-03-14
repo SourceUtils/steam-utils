@@ -240,12 +240,12 @@ public class ArchiveExplorer : JPanel() {
     /**
      * @return the selected files, last in, first out
      */
-    protected fun getSelected(): List<out SimpleVFile> {
+    protected fun getSelected(): List<SimpleVFile> {
         val ret = LinkedList<SimpleVFile>()
         for (treePath in treeTable!!.getTreeSelectionModel().getSelectionPaths()) {
             val lastPathComponent = treePath.getLastPathComponent()
             if (lastPathComponent is SimpleVFile) {
-                ret.addFirst(lastPathComponent as SimpleVFile)
+                ret.addFirst(lastPathComponent)
             }
         }
         return ret
@@ -255,7 +255,7 @@ public class ArchiveExplorer : JPanel() {
         if (c == null) {
             return JOptionPane.getRootFrame()
         } else if (c is Frame) {
-            return c as Frame
+            return c
         } else {
             return getFrame(c.getParent())
         }
@@ -280,7 +280,7 @@ public class ArchiveExplorer : JPanel() {
 
     }
 
-    protected fun extract(items: List<out SimpleVFile>) {
+    protected fun extract(items: List<SimpleVFile>) {
         try {
             val outs = NativeFileChooser().setParent(getFrame(this)).setTitle("Select extraction directory").setMultiSelectionEnabled(false).setDialogType(BaseFileChooser.DialogType.OPEN_DIALOG).setFileMode(BaseFileChooser.FileMode.DIRECTORIES_ONLY).choose()
             if (outs == null) {
@@ -345,20 +345,19 @@ public class ArchiveExplorer : JPanel() {
         }
     }
 
-    protected fun properties(list: List<out SimpleVFile>) {
+    protected fun properties(list: List<SimpleVFile>) {
         if (list.isEmpty()) return
         val selected = list.get(0)
         if (selected is ExtendedVFile) {
-            val ext = selected as ExtendedVFile
             val title: String?
             var message = ""
             //        if(selectedArchive != null) {
             //            title = selectedArchive.toString();
             //            //            message = "V" + selectedArchive.header.applicationVersion + "\n";
             //        } else {
-            title = ext.name
-            message += "Entry: " + ext.getAbsoluteName() + '\n'
-            message += "${ext.getChecksum()} vs ${ext.calculateChecksum()}"
+            title = selected.name
+            message += "Entry: " + selected.getAbsoluteName() + '\n'
+            message += "${selected.getChecksum()} vs ${selected.calculateChecksum()}"
             //        }
             JOptionPane.showMessageDialog(this, message, title, JOptionPane.INFORMATION_MESSAGE)
         }
@@ -382,25 +381,17 @@ public class ArchiveExplorer : JPanel() {
 
         override fun getColumnCount() = columns.size()
 
-        override fun getValueAt(node: Any, column: Int): Any? {
-            if (node is SimpleVFile) {
-                val simple = node as SimpleVFile
-                when (column) {
-                    0 -> return simple
-                    1 -> return simple.length
-                    2 -> return FileUtils.extension(simple.name)
-                    4 -> return simple.path
-                }
-                if (simple is ExtendedVFile) {
-                    val extended = simple as ExtendedVFile
-                    when (column) {
-                        3 -> return extended.getRoot()
-                        5 -> return extended.getAttributes()
-                        6 -> return extended.isComplete()
-                    }
-                }
-            }
-            return null
+        override fun getValueAt(node: Any, column: Int): Any? = when {
+            node !is SimpleVFile -> null
+            column == 0 -> node
+            column == 1 -> node.length
+            column == 2 -> FileUtils.extension(node.name)
+            column == 4 -> node.path
+            node !is ExtendedVFile -> null
+            column == 3 -> node.getRoot()
+            column == 5 -> node.getAttributes()
+            column == 6 -> node.isComplete()
+            else -> null
         }
 
         override fun getColumnClass(column: Int): Class<*> {
@@ -417,23 +408,21 @@ public class ArchiveExplorer : JPanel() {
 
         override fun isLeaf(node: Any): Boolean {
             if (node is SimpleVFile) {
-                return (node as SimpleVFile).list().size() == 0
+                return node.list().size() == 0
             }
             return false
         }
 
         override fun getChild(parent: Any, index: Int): Any {
             if (parent is SimpleVFile) {
-                val dir = parent as SimpleVFile
-                return ArrayList(dir.list()).get(index)
+                return ArrayList(parent.list())[index]
             }
-            return archives.get(index)
+            return archives[index]
         }
 
         override fun getChildCount(parent: Any): Int {
             if (parent is SimpleVFile) {
-                val dir = parent as SimpleVFile
-                return dir.list().size()
+                return parent.list().size()
             }
             return archives.size()
         }
@@ -441,8 +430,7 @@ public class ArchiveExplorer : JPanel() {
         SuppressWarnings("SuspiciousMethodCalls")
         override fun getIndexOfChild(parent: Any, child: Any): Int {
             if (parent is SimpleVFile) {
-                val dir = parent as SimpleVFile
-                return ArrayList(dir.list()).indexOf(child)
+                return ArrayList(parent.list()).indexOf(child)
             }
             return archives.indexOf(child)
         }
