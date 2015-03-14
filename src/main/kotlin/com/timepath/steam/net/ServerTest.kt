@@ -73,14 +73,14 @@ class ServerTest : JPanel() {
                         e.printStackTrace()
                     }
 
-                    val filters = vdf!!.get("Filters")
+                    val filters = vdf!!["Filters"]
                     val map = HashMap<String, JTextArea>(2)
                     map.put("Favorites", favorites)
                     map.put("History", history)
                     for (e in map.entrySet()) {
                         val k = e.getKey()
                         val v = e.getValue()
-                        for (n in filters.get(k)!!.getNodes()) {
+                        for (n in filters[k]!!.getNodes()) {
                             v.append("Favorite: " + n.getCustom() + "\n")
                             v.append("Name: " + n.getValue("name") + "\n")
                             v.append("Address: " + n.getValue("address") + "\n")

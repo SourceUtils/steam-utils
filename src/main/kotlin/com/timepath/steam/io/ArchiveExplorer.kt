@@ -331,7 +331,7 @@ public class ArchiveExplorer : JPanel() {
             extractMenuItem!!.setEnabled(true)
             popupMenu!!.show(table, evt.getX(), evt.getY())
         } else if (SwingUtilities.isLeftMouseButton(evt) && (evt.getClickCount() >= 2)) {
-            val file = selected.get(0)
+            val file = selected[0]
             if (file.isDirectory) {
                 val path = table.getPathForLocation(evt.getX(), evt.getY())
                 if (table.isExpanded(path)) {
@@ -347,7 +347,7 @@ public class ArchiveExplorer : JPanel() {
 
     protected fun properties(list: List<SimpleVFile>) {
         if (list.isEmpty()) return
-        val selected = list.get(0)
+        val selected = list[0]
         if (selected is ExtendedVFile) {
             val title: String?
             var message = ""
