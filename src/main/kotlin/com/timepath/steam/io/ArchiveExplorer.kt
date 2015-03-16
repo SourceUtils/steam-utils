@@ -51,7 +51,7 @@ public class ArchiveExplorer : JPanel() {
         val table = treeTable!!
         table.setTreeTableModel(tableModel)
         // hide the last few columns
-        for (i in 0..3 - 1) {
+        for (i in 3.indices) {
             table.getColumnExt(4).setVisible(false)
         }
     }
