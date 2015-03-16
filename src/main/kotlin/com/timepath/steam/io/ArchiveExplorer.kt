@@ -143,7 +143,7 @@ public class ArchiveExplorer : JPanel() {
                     {
                         addActionListener(object : ActionListener {
                             override fun actionPerformed(evt: ActionEvent) {
-                                extract(getSelected())
+                                extract(selected)
                             }
                         })
                     }
@@ -153,7 +153,7 @@ public class ArchiveExplorer : JPanel() {
                     {
                         addActionListener(object : ActionListener {
                             override fun actionPerformed(evt: ActionEvent) {
-                                properties(getSelected())
+                                properties(selected)
                             }
                         })
                     }
@@ -240,7 +240,7 @@ public class ArchiveExplorer : JPanel() {
     /**
      * @return the selected files, last in, first out
      */
-    protected fun getSelected(): List<SimpleVFile> {
+    protected val selected: List<SimpleVFile> get() {
         val ret = LinkedList<SimpleVFile>()
         for (treePath in treeTable!!.getTreeSelectionModel().getSelectionPaths()) {
             val lastPathComponent = treePath.getLastPathComponent()
@@ -320,7 +320,7 @@ public class ArchiveExplorer : JPanel() {
     }
 
     protected fun tableClicked(evt: MouseEvent) {
-        val selected = getSelected()
+        val selected = selected
         if (selected.isEmpty()) return
         val table = treeTable!!
         if (SwingUtilities.isRightMouseButton(evt)) {
@@ -356,8 +356,8 @@ public class ArchiveExplorer : JPanel() {
             //            //            message = "V" + selectedArchive.header.applicationVersion + "\n";
             //        } else {
             title = selected.name
-            message += "Entry: " + selected.getAbsoluteName() + '\n'
-            message += "${selected.getChecksum()} vs ${selected.calculateChecksum()}"
+            message += "Entry: " + selected.absoluteName + '\n'
+            message += "${selected.checksum} vs ${selected.calculateChecksum()}"
             //        }
             JOptionPane.showMessageDialog(this, message, title, JOptionPane.INFORMATION_MESSAGE)
         }
@@ -385,12 +385,12 @@ public class ArchiveExplorer : JPanel() {
             node !is SimpleVFile -> null
             column == 0 -> node
             column == 1 -> node.length
-            column == 2 -> FileUtils.extension(node.name)
+            column == 2 -> node.name.substringBeforeLast('.')
             column == 4 -> node.path
             node !is ExtendedVFile -> null
-            column == 3 -> node.getRoot()
-            column == 5 -> node.getAttributes()
-            column == 6 -> node.isComplete()
+            column == 3 -> node.root
+            column == 5 -> node.attributes
+            column == 6 -> node.isComplete
             else -> null
         }
 
