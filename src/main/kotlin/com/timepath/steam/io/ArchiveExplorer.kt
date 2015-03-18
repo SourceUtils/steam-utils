@@ -25,6 +25,8 @@ import java.awt.Dimension
 import java.awt.Desktop
 import java.awt.Frame
 import java.awt.Component
+import org.jdesktop.swingx.JXTreeTable
+import org.jdesktop.swingx.treetable.AbstractTreeTableModel
 
 /**
  * @author TimePath
