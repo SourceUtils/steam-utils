@@ -81,11 +81,11 @@ class ServerTest : JPanel() {
                         val k = e.getKey()
                         val v = e.getValue()
                         for (n in filters[k]!!.getNodes()) {
-                            v.append("Favorite: " + n.getCustom() + "\n")
-                            v.append("Name: " + n.getValue("name") + "\n")
-                            v.append("Address: " + n.getValue("address") + "\n")
+                            v.append("Favorite: ${n.getCustom()}\n")
+                            v.append("Name: ${n.getValue("name")}\n")
+                            v.append("Address: ${n.getValue("address")}\n")
                             v.append("\n")
-                            v.append("Last Played: " + DateUtils.parse(java.lang.Long.parseLong(n.getValue("LastPlayed") as String)) + "\n")
+                            v.append("Last Played: ${DateUtils.parse(java.lang.Long.parseLong(n.getValue("LastPlayed") as String))}\n")
                         }
                     }
                 }
@@ -97,7 +97,7 @@ class ServerTest : JPanel() {
                         MasterServer.SOURCE.query(MasterServer.Region.AUSTRALIA, "\\gamedir\\tf", object : ServerListener {
 
                             override fun inform(update: String) {
-                                internet.append(update + '\n')
+                                internet.append("$update\n")
                             }
                         })
                     } catch (e: IOException) {

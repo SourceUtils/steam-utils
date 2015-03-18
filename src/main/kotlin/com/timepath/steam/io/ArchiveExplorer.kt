@@ -75,7 +75,7 @@ public class ArchiveExplorer : JPanel() {
         val searchNode = object : SimpleVFile() {
             override val isDirectory = true
 
-            override val name = "Search: " + search
+            override val name = "Search: $search"
 
             override fun openStream() = null
         }
@@ -356,7 +356,7 @@ public class ArchiveExplorer : JPanel() {
             //            //            message = "V" + selectedArchive.header.applicationVersion + "\n";
             //        } else {
             title = selected.name
-            message += "Entry: " + selected.absoluteName + '\n'
+            message += "Entry: ${selected.absoluteName}\n"
             message += "${selected.checksum} vs ${selected.calculateChecksum()}"
             //        }
             JOptionPane.showMessageDialog(this, message, title, JOptionPane.INFORMATION_MESSAGE)
@@ -365,7 +365,7 @@ public class ArchiveExplorer : JPanel() {
 
     protected fun mount(appID: Int) {
         try {
-            addArchive(ACF.fromManifest(appID)!!)
+            addArchive(ACF.fromManifest(appID))
         } catch (ex: IOException) {
             LOG.log(Level.SEVERE, null, ex)
         }
