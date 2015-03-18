@@ -11,7 +11,6 @@ import javax.swing.*
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 import java.awt.datatransfer.DataFlavor
-import java.awt.datatransfer.Transferable
 import java.awt.datatransfer.UnsupportedFlavorException
 import java.awt.dnd.*
 import java.awt.event.ActionEvent
@@ -234,11 +233,9 @@ private() : JFrame() {
          * @param args the command line arguments
          */
         public fun main(args: Array<String>) {
-            EventQueue.invokeLater(object : Runnable {
-                override fun run() {
-                    DataTest().setVisible(true)
-                }
-            })
+            EventQueue.invokeLater {
+                DataTest().setVisible(true)
+            }
         }
     }
 }

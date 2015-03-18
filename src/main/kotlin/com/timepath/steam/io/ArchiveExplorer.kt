@@ -10,8 +10,6 @@ import com.timepath.steam.io.storage.ACF
 import com.timepath.steam.io.storage.VPK
 import com.timepath.vfs.provider.ExtendedVFile
 import com.timepath.vfs.SimpleVFile
-import org.jdesktop.swingx.JXTreeTable
-import org.jdesktop.swingx.treetable.AbstractTreeTableModel
 
 import javax.swing.*
 import java.awt.event.*
@@ -444,20 +442,18 @@ public class ArchiveExplorer : JPanel() {
          * @param args the command line arguments
          */
         public platformStatic fun main(args: Array<String>) {
-            EventQueue.invokeLater(object : Runnable {
-                override fun run() {
-                    val f = JFrame()
-                    f.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)
-                    f.setTitle("Archive Explorer")
-                    f.setPreferredSize(Dimension(800, 500))
-                    val ae = ArchiveExplorer()
-                    f.setContentPane(ae)
-                    f.setJMenuBar(ae.menuBar)
-                    f.pack()
-                    f.setLocationRelativeTo(null)
-                    f.setVisible(true)
-                }
-            })
+            EventQueue.invokeLater {
+                val f = JFrame()
+                f.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)
+                f.setTitle("Archive Explorer")
+                f.setPreferredSize(Dimension(800, 500))
+                val ae = ArchiveExplorer()
+                f.setContentPane(ae)
+                f.setJMenuBar(ae.menuBar)
+                f.pack()
+                f.setLocationRelativeTo(null)
+                f.setVisible(true)
+            }
         }
     }
 }

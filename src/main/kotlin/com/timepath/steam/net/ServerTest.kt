@@ -20,6 +20,7 @@ import javax.swing.JTextArea
 import javax.swing.SwingUtilities
 import javax.swing.WindowConstants
 import kotlin.platform.platformStatic
+import kotlin.concurrent.thread
 
 /**
  * @author TimePath
@@ -41,71 +42,64 @@ class ServerTest : JPanel() {
                 add("Internet", JScrollPane(internet))
                 this
             })
-            Thread(object : Runnable {
-                override fun run() {
-                    server.append("Server: ${ss.address}\n")
-                    try {
-                        log.info("Getting info ...")
-                        ss.getInfo(object : ServerListener {
-                            override fun inform(update: String) {
-                                server.append("${update}\n")
-                            }
-                        })
-                        log.info("Getting rules ...")
-                        server.append("Rules: \n")
-                        ss.getRules(object : ServerListener {
-                            override fun inform(update: String) {
-                                server.append("${update}\n")
-                            }
-                        })
-                    } catch (ex: IOException) {
-                        log.log(Level.WARNING, null, ex)
-                    }
-
-                }
-            }).start()
-            Thread(object : Runnable {
-                override fun run() {
-                    var vdf: VDFNode? = null
-                    try {
-                        vdf = VDF.load(File(SteamUtils.getUserData(), "7/remote/serverbrowser_hist.vdf"))
-                    } catch (e: IOException) {
-                        e.printStackTrace()
-                    }
-
-                    val filters = vdf!!["Filters"]
-                    val map = HashMap<String, JTextArea>(2)
-                    map.put("Favorites", favorites)
-                    map.put("History", history)
-                    for (e in map.entrySet()) {
-                        val k = e.getKey()
-                        val v = e.getValue()
-                        for (n in filters[k]!!.getNodes()) {
-                            v.append("Favorite: ${n.getCustom()}\n")
-                            v.append("Name: ${n.getValue("name")}\n")
-                            v.append("Address: ${n.getValue("address")}\n")
-                            v.append("\n")
-                            v.append("Last Played: ${DateUtils.parse(java.lang.Long.parseLong(n.getValue("LastPlayed") as String))}\n")
+            thread {
+                server.append("Server: ${ss.address}\n")
+                try {
+                    log.info("Getting info ...")
+                    ss.getInfo(object : ServerListener {
+                        override fun inform(update: String) {
+                            server.append("${update}\n")
                         }
+                    })
+                    log.info("Getting rules ...")
+                    server.append("Rules: \n")
+                    ss.getRules(object : ServerListener {
+                        override fun inform(update: String) {
+                            server.append("${update}\n")
+                        }
+                    })
+                } catch (ex: IOException) {
+                    log.log(Level.WARNING, null, ex)
+                }
+            }
+            thread {
+                var vdf: VDFNode? = null
+                try {
+                    vdf = VDF.load(File(SteamUtils.getUserData(), "7/remote/serverbrowser_hist.vdf"))
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                }
+
+                val filters = vdf!!["Filters"]
+                val map = HashMap<String, JTextArea>(2)
+                map.put("Favorites", favorites)
+                map.put("History", history)
+                for (e in map.entrySet()) {
+                    val k = e.getKey()
+                    val v = e.getValue()
+                    for (n in filters[k]!!.getNodes()) {
+                        v.append("Favorite: ${n.getCustom()}\n")
+                        v.append("Name: ${n.getValue("name")}\n")
+                        v.append("Address: ${n.getValue("address")}\n")
+                        v.append("\n")
+                        v.append("Last Played: ${DateUtils.parse(java.lang.Long.parseLong(n.getValue("LastPlayed") as String))}\n")
                     }
                 }
-            }).start()
-            Thread(object : Runnable {
-                override fun run() {
-                    log.info("Querying master ...")
-                    try {
-                        MasterServer.SOURCE.query(MasterServer.Region.AUSTRALIA, "\\gamedir\\tf", object : ServerListener {
+            }
+            thread {
+                log.info("Querying master ...")
+                try {
+                    MasterServer.SOURCE.query(MasterServer.Region.AUSTRALIA, "\\gamedir\\tf", object : ServerListener {
 
-                            override fun inform(update: String) {
-                                internet.append("$update\n")
-                            }
-                        })
-                    } catch (e: IOException) {
-                        e.printStackTrace()
-                    }
-
+                        override fun inform(update: String) {
+                            internet.append("$update\n")
+                        }
+                    })
+                } catch (e: IOException) {
+                    e.printStackTrace()
                 }
-            }).start()
+
+            }
             this
         })
     }
@@ -117,20 +111,18 @@ class ServerTest : JPanel() {
         public platformStatic fun main(args: Array<String>) {
             log.log(Level.INFO, "Started")
 
-            SwingUtilities.invokeLater(object : Runnable {
-                override fun run() {
-                    log.log(Level.INFO, "EDT")
-                    val d = JDialog()
-                    d.setTitle("Server browser")
-                    d.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)
-                    d.setPreferredSize(Dimension(800, 600))
-                    d.add(ServerTest())
-                    d.pack()
-                    d.setLocationRelativeTo(null)
-                    d.setVisible(true)
-                    log.log(Level.INFO, "Visible")
-                }
-            })
+            SwingUtilities.invokeLater {
+                log.log(Level.INFO, "EDT")
+                val d = JDialog()
+                d.setTitle("Server browser")
+                d.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)
+                d.setPreferredSize(Dimension(800, 600))
+                d.add(ServerTest())
+                d.pack()
+                d.setLocationRelativeTo(null)
+                d.setVisible(true)
+                log.log(Level.INFO, "Visible")
+            }
         }
     }
 }
