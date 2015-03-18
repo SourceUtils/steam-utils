@@ -1,6 +1,5 @@
 package com.timepath.steam.io
 
-import com.timepath.FileUtils
 import com.timepath.plaf.OS
 import com.timepath.plaf.x.filechooser.BaseFileChooser
 import com.timepath.plaf.x.filechooser.NativeFileChooser
@@ -58,7 +57,7 @@ public class ArchiveExplorer : JPanel() {
 
     throws(javaClass<IOException>())
     protected fun load(f: File) {
-        val ext = FileUtils.extension(f)
+        val ext = f.name.substringAfterLast('.')
         val a: ExtendedVFile?
         when (ext) {
             "gcf" -> a = GCF(f)
