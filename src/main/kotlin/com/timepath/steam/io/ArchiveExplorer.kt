@@ -7,25 +7,21 @@ import com.timepath.steam.SteamUtils
 import com.timepath.steam.io.gcf.GCF
 import com.timepath.steam.io.storage.ACF
 import com.timepath.steam.io.storage.VPK
-import com.timepath.vfs.provider.ExtendedVFile
 import com.timepath.vfs.SimpleVFile
-
-import javax.swing.*
+import com.timepath.vfs.provider.ExtendedVFile
+import org.jdesktop.swingx.JXTreeTable
+import org.jdesktop.swingx.treetable.AbstractTreeTableModel
+import java.awt.*
 import java.awt.event.*
 import java.io.File
 import java.io.IOException
-import java.util.*
+import java.util.ArrayList
+import java.util.LinkedList
 import java.util.logging.Level
 import java.util.logging.Logger
-import java.awt.BorderLayout
+import javax.swing.*
 import kotlin.platform.platformStatic
-import java.awt.EventQueue
-import java.awt.Dimension
-import java.awt.Desktop
-import java.awt.Frame
-import java.awt.Component
-import org.jdesktop.swingx.JXTreeTable
-import org.jdesktop.swingx.treetable.AbstractTreeTableModel
+import kotlin.properties.Delegates
 
 /**
  * @author TimePath
@@ -35,14 +31,10 @@ public class ArchiveExplorer : JPanel() {
     protected val archives: MutableList<SimpleVFile> = LinkedList()
     protected var tableModel: ArchiveTreeTableModel? = null
     protected var popupMenu: JPopupMenu? = null
-    protected var extractMenuItem: JMenuItem? = null
+    protected var extractMenuItem: JMenuItem by Delegates.notNull()
     protected var treeTable: JXTreeTable? = null
     public var menuBar: JMenuBar? = null
         protected set
-
-    init {
-        this.add(initComponents(), BorderLayout.CENTER)
-    }
 
     protected fun addArchive(a: SimpleVFile) {
         archives.add(a)
@@ -106,7 +98,7 @@ public class ArchiveExplorer : JPanel() {
         }.execute()
     }
 
-    protected fun initComponents(): Component {
+    init {
         setLayout(BorderLayout())
         menuBar = object : JMenuBar() {
             init {
@@ -159,7 +151,7 @@ public class ArchiveExplorer : JPanel() {
                 })
             }
         }
-        return object : JPanel(BorderLayout()) {
+        object : JPanel(BorderLayout()) {
             init {
                 add(object : JPanel(BorderLayout()) {
                     init {
@@ -233,6 +225,8 @@ public class ArchiveExplorer : JPanel() {
                 }
                 add(JScrollPane(treeTable), BorderLayout.CENTER)
             }
+        }.let {
+            this.add(it, BorderLayout.CENTER)
         }
     }
 
@@ -327,7 +321,7 @@ public class ArchiveExplorer : JPanel() {
             val rowNumber = table.rowAtPoint(p)
             val model = table.getSelectionModel()
             model.setSelectionInterval(rowNumber, rowNumber)
-            extractMenuItem!!.setEnabled(true)
+            extractMenuItem.setEnabled(true)
             popupMenu!!.show(table, evt.getX(), evt.getY())
         } else if (SwingUtilities.isLeftMouseButton(evt) && (evt.getClickCount() >= 2)) {
             val file = selected[0]

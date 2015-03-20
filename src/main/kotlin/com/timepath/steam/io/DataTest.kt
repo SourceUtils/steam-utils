@@ -6,13 +6,15 @@ import com.timepath.plaf.x.filechooser.NativeFileChooser
 import com.timepath.steam.SteamUtils
 import com.timepath.steam.io.blob.Blob
 import com.timepath.steam.io.bvdf.BVDF
-
-import javax.swing.*
-import javax.swing.tree.DefaultMutableTreeNode
-import javax.swing.tree.DefaultTreeModel
+import java.awt.BorderLayout
+import java.awt.Dimension
+import java.awt.EventQueue
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.UnsupportedFlavorException
-import java.awt.dnd.*
+import java.awt.dnd.DnDConstants
+import java.awt.dnd.DropTarget
+import java.awt.dnd.DropTargetDropEvent
+import java.awt.dnd.InvalidDnDOperationException
 import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
 import java.awt.event.InputEvent
@@ -26,9 +28,10 @@ import java.util.StringTokenizer
 import java.util.concurrent.ExecutionException
 import java.util.logging.Level
 import java.util.logging.Logger
-import java.awt.Dimension
-import java.awt.BorderLayout
-import java.awt.EventQueue
+import javax.swing.*
+import javax.swing.tree.DefaultMutableTreeNode
+import javax.swing.tree.DefaultTreeModel
+import kotlin.platform.platformStatic
 
 /**
  * @author TimePath
@@ -121,7 +124,7 @@ private() : JFrame() {
         jMenuItem1.setText("Open")
         jMenuItem1.addActionListener(object : ActionListener {
             override fun actionPerformed(e: ActionEvent) {
-                openFile(e)
+                openFile()
             }
         })
         jMenu1.add(jMenuItem1)
@@ -130,7 +133,7 @@ private() : JFrame() {
         jMenuItem2.setText("AppInfo")
         jMenuItem2.addActionListener(object : ActionListener {
             override fun actionPerformed(e: ActionEvent) {
-                appInfo(e)
+                appInfo()
             }
         })
         jMenu1.add(jMenuItem2)
@@ -139,7 +142,7 @@ private() : JFrame() {
         jMenuItem3.setText("PackageInfo")
         jMenuItem3.addActionListener(object : ActionListener {
             override fun actionPerformed(evt: ActionEvent) {
-                packageInfo(evt)
+                packageInfo()
             }
         })
         jMenu1.add(jMenuItem3)
@@ -148,7 +151,7 @@ private() : JFrame() {
         pack()
     }
 
-    private fun openFile(e: ActionEvent) {
+    private fun openFile() {
         try {
             val fs = NativeFileChooser().setDirectory(SteamUtils.getSteam()).setParent(this).setTitle("Open VDF").choose()
             if (fs == null) {
@@ -217,11 +220,11 @@ private() : JFrame() {
         }.execute()
     }
 
-    private fun appInfo(evt: ActionEvent) {
+    private fun appInfo() {
         open(File(SteamUtils.getSteam(), "appcache/appinfo.vdf"))
     }
 
-    private fun packageInfo(evt: ActionEvent) {
+    private fun packageInfo() {
         open(File(SteamUtils.getSteam(), "appcache/packageinfo.vdf"))
     }
 
@@ -232,12 +235,10 @@ private() : JFrame() {
         /**
          * @param args the command line arguments
          */
-        public fun main(args: Array<String>) {
+        public platformStatic fun main(args: Array<String>) {
             EventQueue.invokeLater {
                 DataTest().setVisible(true)
             }
         }
     }
 }
-
-fun main(args: Array<String>) = DataTest.main(args)
