@@ -40,7 +40,7 @@ public class ArchiveExplorer : JPanel() {
     public var menuBar: JMenuBar? = null
         protected set
 
-    {
+    init {
         this.add(initComponents(), BorderLayout.CENTER)
     }
 
@@ -109,12 +109,12 @@ public class ArchiveExplorer : JPanel() {
     protected fun initComponents(): Component {
         setLayout(BorderLayout())
         menuBar = object : JMenuBar() {
-            {
+            init {
                 add(object : JMenu("File") {
-                    {
+                    init {
                         setMnemonic('F')
                         add(object : JMenuItem("Open") {
-                            {
+                            init {
                                 setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_MASK))
                                 addActionListener(object : ActionListener {
                                     override fun actionPerformed(evt: ActionEvent) {
@@ -124,7 +124,7 @@ public class ArchiveExplorer : JPanel() {
                             }
                         })
                         add(object : JMenuItem("Mount TF2") {
-                            {
+                            init {
                                 addActionListener(object : ActionListener {
                                     override fun actionPerformed(evt: ActionEvent) {
                                         mount(440)
@@ -137,9 +137,9 @@ public class ArchiveExplorer : JPanel() {
             }
         }
         popupMenu = object : JPopupMenu() {
-            {
+            init {
                 extractMenuItem = object : JMenuItem("Extract") {
-                    {
+                    init {
                         addActionListener(object : ActionListener {
                             override fun actionPerformed(evt: ActionEvent) {
                                 extract(selected)
@@ -149,7 +149,7 @@ public class ArchiveExplorer : JPanel() {
                 }
                 add(extractMenuItem)
                 add(object : JMenuItem("Properties") {
-                    {
+                    init {
                         addActionListener(object : ActionListener {
                             override fun actionPerformed(evt: ActionEvent) {
                                 properties(selected)
@@ -160,12 +160,12 @@ public class ArchiveExplorer : JPanel() {
             }
         }
         return object : JPanel(BorderLayout()) {
-            {
+            init {
                 add(object : JPanel(BorderLayout()) {
-                    {
+                    init {
                         val field: JTextField
                         field = object : JTextField() {
-                            {
+                            init {
                                 addActionListener(object : ActionListener {
                                     override fun actionPerformed(evt: ActionEvent) {
                                         search(getText())
@@ -175,7 +175,7 @@ public class ArchiveExplorer : JPanel() {
                         }
                         add(field, BorderLayout.CENTER)
                         add(object : JButton("Search") {
-                            {
+                            init {
                                 addActionListener(object : ActionListener {
                                     override fun actionPerformed(evt: ActionEvent) {
                                         search(field.getText())
@@ -186,7 +186,7 @@ public class ArchiveExplorer : JPanel() {
                     }
                 }, BorderLayout.NORTH)
                 treeTable = object : JXTreeTable() {
-                    {
+                    init {
                         setLargeModel(true)
                         setColumnControlVisible(true)
                         setHorizontalScrollEnabled(true)
@@ -435,7 +435,7 @@ public class ArchiveExplorer : JPanel() {
         }
     }
 
-    class object {
+    companion object {
 
         private val LOG = Logger.getLogger(javaClass<ArchiveExplorer>().getName())
 

@@ -27,7 +27,7 @@ import kotlin.concurrent.thread
  */
 class ServerTest : JPanel() {
 
-    {
+    init {
         val server = JTextArea()
         val favorites = JTextArea()
         val history = JTextArea()
@@ -104,7 +104,7 @@ class ServerTest : JPanel() {
         })
     }
 
-    class object {
+    companion object {
 
         val log = Logger.getLogger(javaClass<ServerTest>().getName())
 

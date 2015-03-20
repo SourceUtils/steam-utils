@@ -12,7 +12,7 @@ import kotlin.platform.platformStatic
  * @author TimePath
  */
 class DiffGen private() {
-    class object {
+    companion object {
 
         private val LOG = Logger.getLogger(javaClass<DiffGen>().getName())
         private val blacklist = array(".*/bin", ".*/cache", ".*tf/custom", ".*tf/download", ".*tf/replay", ".*tf/screenshots", ".*sounds?\\.cache", ".*cfg/config\\.cfg", ".*media/viewed\\.res", ".*tf/console\\.log", ".*tf/condump.*\\.txt", ".*tf/demoheader\\.tmp", ".*tf/voice_ban\\.dt", ".*tf/trainingprogress\\.txt")
@@ -56,7 +56,7 @@ class DiffGen private() {
                 val repo = File(container, i.toString())
                 repo.mkdirs()
                 val acf = ACF.fromManifest(i)
-                val files = acf!!.list()
+                val files = acf.list()
                 for (v in files) {
                     extract(v, repo)
                 }

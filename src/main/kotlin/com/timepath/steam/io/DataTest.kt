@@ -41,7 +41,7 @@ class DataTest
 private() : JFrame() {
     private var jTree1: JTree? = null
 
-    {
+    init {
         initComponents()
         setDropTarget(object : DropTarget() {
             override fun drop(e: DropTargetDropEvent) {
@@ -225,7 +225,7 @@ private() : JFrame() {
         open(File(SteamUtils.getSteam(), "appcache/packageinfo.vdf"))
     }
 
-    class object {
+    companion object {
 
         private val LOG = Logger.getLogger(javaClass<DataTest>().getName())
 
