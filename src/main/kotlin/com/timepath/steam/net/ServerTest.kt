@@ -11,16 +11,9 @@ import java.io.IOException
 import java.util.HashMap
 import java.util.logging.Level
 import java.util.logging.Logger
-import javax.swing.JDialog
-import javax.swing.JPanel
-import javax.swing.JScrollPane
-import javax.swing.JSplitPane
-import javax.swing.JTabbedPane
-import javax.swing.JTextArea
-import javax.swing.SwingUtilities
-import javax.swing.WindowConstants
-import kotlin.platform.platformStatic
+import javax.swing.*
 import kotlin.concurrent.thread
+import kotlin.platform.platformStatic
 
 /**
  * @author TimePath

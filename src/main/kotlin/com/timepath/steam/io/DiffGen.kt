@@ -1,10 +1,10 @@
 package com.timepath.steam.io
 
 import com.timepath.steam.io.storage.ACF
-import com.timepath.vfs.SimpleVFile
 import com.timepath.vfs.VFile
-
-import java.io.*
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 import java.util.logging.Logger
 import kotlin.platform.platformStatic
 
