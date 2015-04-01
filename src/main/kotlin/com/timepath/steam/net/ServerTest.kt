@@ -56,14 +56,8 @@ class ServerTest : JPanel() {
                 }
             }
             thread {
-                var vdf: VDFNode? = null
-                try {
-                    vdf = VDF.load(File(SteamUtils.getUserData(), "7/remote/serverbrowser_hist.vdf"))
-                } catch (e: IOException) {
-                    e.printStackTrace()
-                }
-
-                val filters = vdf!!["Filters"]
+                val vdf = VDF.load(File(SteamUtils.getUserData(), "7/remote/serverbrowser_hist.vdf"))
+                val filters = vdf["Filters"]
                 val map = HashMap<String, JTextArea>(2)
                 map.put("Favorites", favorites)
                 map.put("History", history)

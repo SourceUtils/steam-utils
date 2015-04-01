@@ -81,9 +81,7 @@ private() : JFrame() {
                             }
                         }
                     }
-                    if (file != null) {
-                        open(file)
-                    }
+                    file?.let { open(it) }
                 } catch (ex: ClassNotFoundException) {
                     LOG.log(Level.SEVERE, null, ex)
                 } catch (ex: IOException) {
@@ -164,49 +162,43 @@ private() : JFrame() {
 
     }
 
-    private fun open(f: File?) {
-        if (f == null) {
-            LOG.info("File is null")
-            return
-        }
+    private fun open(f: File) {
         LOG.log(Level.INFO, "File is {0}", f)
         val model = jTree1!!.getModel() as DefaultTreeModel
         val pseudo = DefaultMutableTreeNode(f.getPath())
         model.setRoot(pseudo)
         object : SwingWorker<DefaultMutableTreeNode, Void>() {
-            throws(javaClass<Exception>())
             override fun doInBackground(): DefaultMutableTreeNode? {
-                var n: DefaultMutableTreeNode? = null
-                try {
-                    if (f.getName().toLowerCase().endsWith(".blob")) {
+                val s = f.getName().toLowerCase()
+                return when {
+                    s.endsWith(".blob") -> {
                         val bin = Blob()
                         bin.readExternal(DataUtils.mapFile(f))
-                        n = bin.root
-                    } else if (f.getName().toLowerCase().matches("^.*(vdf|res|bin|txt|styles)$")) {
+                        bin.root
+                    }
+                    s.matches("^.*(vdf|res|bin|txt|styles)$") -> {
                         if (VDF.isBinary(f)) {
                             val bin = BVDF()
                             bin.readExternal(DataUtils.mapFile(f))
-                            n = bin.root
+                            bin.root
                         } else {
-                            n = VDF.load(FileInputStream(f)).toTreeNode()
+                            val bin = VDF.load(FileInputStream(f))
+                            bin.toTreeNode()
                         }
-                    } else {
-                        JOptionPane.showMessageDialog(this@DataTest, MessageFormat.format("{0} is not supported", f.getAbsolutePath()), "Invalid file", JOptionPane.ERROR_MESSAGE)
                     }
-                } catch (e: StackOverflowError) {
-                    LOG.warning("Stack Overflow")
-                } catch (e: Exception) {
-                    LOG.log(Level.SEVERE, null, e)
+                    else -> {
+                        JOptionPane.showMessageDialog(this@DataTest, "${f.getAbsolutePath()} is not supported",
+                                "Invalid file", JOptionPane.ERROR_MESSAGE)
+                        null
+                    }
                 }
-
-                return n
             }
 
             override fun done() {
                 try {
                     val n = get()
-                    if (n != null) {
-                        pseudo.add(n)
+                    n?.let {
+                        pseudo.add(it)
                     }
                     model.reload()
                     //                    TreeUtils.expand(DataTest.this.jTree1);
