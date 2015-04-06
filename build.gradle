@@ -18,5 +18,7 @@ dependencies {
 
     compile 'org.swinglabs.swingx:swingx-all:1.6.5'
 
+    compile 'com.timepath:java-vfs:1.0-SNAPSHOT'
+    compile 'com.timepath:java-xplaf:1.0-SNAPSHOT'
     compile 'com.timepath:steam-toolkit:1.0-SNAPSHOT'
 }
