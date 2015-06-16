@@ -23,7 +23,6 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
 import java.net.URI
-import java.text.MessageFormat
 import java.util.StringTokenizer
 import java.util.concurrent.ExecutionException
 import java.util.logging.Level
@@ -33,15 +32,11 @@ import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 import kotlin.platform.platformStatic
 
-/**
- * @author TimePath
- */
-SuppressWarnings("serial")
-class DataTest
+public class DataTest
 /**
  * Creates new form VDFTest
  */
-private() : JFrame() {
+private constructor() : JFrame() {
     private var jTree1: JTree? = null
 
     init {
@@ -49,7 +44,6 @@ private() : JFrame() {
         setDropTarget(object : DropTarget() {
             override fun drop(e: DropTargetDropEvent) {
                 try {
-                    val context = e.getDropTargetContext()
                     e.acceptDrop(DnDConstants.ACTION_COPY_OR_MOVE)
                     val t = e.getTransferable()
                     var file: File? = null
@@ -151,10 +145,11 @@ private() : JFrame() {
 
     private fun openFile() {
         try {
-            val fs = NativeFileChooser().setDirectory(SteamUtils.getSteam()).setParent(this).setTitle("Open VDF").choose()
-            if (fs == null) {
-                return
-            }
+            val fs = NativeFileChooser()
+                    .setDirectory(SteamUtils.getSteam())
+                    .setParent(this)
+                    .setTitle("Open VDF")
+                    .choose() ?: return
             open(fs[0])
         } catch (ex: IOException) {
             Logger.getLogger(javaClass<DataTest>().getName()).log(Level.SEVERE, null, ex)
@@ -176,7 +171,7 @@ private() : JFrame() {
                         bin.readExternal(DataUtils.mapFile(f))
                         bin.root
                     }
-                    s.matches("^.*(vdf|res|bin|txt|styles)$") -> {
+                    s.matches("^.*(vdf|res|bin|txt|styles)$".toRegex()) -> {
                         if (VDF.isBinary(f)) {
                             val bin = BVDF()
                             bin.readExternal(DataUtils.mapFile(f))

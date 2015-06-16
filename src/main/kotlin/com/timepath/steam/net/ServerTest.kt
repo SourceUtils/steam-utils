@@ -15,10 +15,7 @@ import javax.swing.*
 import kotlin.concurrent.thread
 import kotlin.platform.platformStatic
 
-/**
- * @author TimePath
- */
-class ServerTest : JPanel() {
+public class ServerTest : JPanel() {
 
     init {
         val server = JTextArea()

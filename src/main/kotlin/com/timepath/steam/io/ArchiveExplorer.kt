@@ -23,10 +23,6 @@ import javax.swing.*
 import kotlin.platform.platformStatic
 import kotlin.properties.Delegates
 
-/**
- * @author TimePath
- */
-SuppressWarnings("serial")
 public class ArchiveExplorer : JPanel() {
     protected val archives: MutableList<SimpleVFile> = LinkedList()
     protected var tableModel: ArchiveTreeTableModel? = null
@@ -42,12 +38,12 @@ public class ArchiveExplorer : JPanel() {
         val table = treeTable!!
         table.setTreeTableModel(tableModel)
         // hide the last few columns
-        for (i in 3.indices) {
+        for (i in 0..2) {
             table.getColumnExt(4).setVisible(false)
         }
     }
 
-    throws(javaClass<IOException>())
+    throws(IOException::class)
     protected fun load(f: File) {
         val ext = f.name.substringAfterLast('.')
         val a: ExtendedVFile?
@@ -71,7 +67,6 @@ public class ArchiveExplorer : JPanel() {
             override fun openStream() = null
         }
         object : SwingWorker<Void, SimpleVFile>() {
-            throws(javaClass<Exception>())
             override fun doInBackground(): Void? {
                 val children = LinkedList<SimpleVFile>()
                 for (a in archives) {
@@ -304,7 +299,7 @@ public class ArchiveExplorer : JPanel() {
             if (!OS.isLinux()) {
                 Desktop.getDesktop().open(f)
             } else {
-                Runtime.getRuntime().exec(array("xdg-open", f.getPath()))
+                Runtime.getRuntime().exec(arrayOf("xdg-open", f.getPath()))
             }
         } catch (ex: IOException) {
             LOG.log(Level.SEVERE, null, ex)
@@ -369,8 +364,8 @@ public class ArchiveExplorer : JPanel() {
             private val archives: List<SimpleVFile> = emptyList()
     ) : AbstractTreeTableModel(Object()) {
 
-        val columns = array("Name", "Size", "Type", "Archive", "Path", "Attributes", "Complete")
-        val types = array<Class<*>>(javaClass<String>(), javaClass<Int>(), javaClass<String>(), javaClass<Any>(), javaClass<String>(), javaClass<Any>(), javaClass<Boolean>())
+        val columns = arrayOf("Name", "Size", "Type", "Archive", "Path", "Attributes", "Complete")
+        val types = arrayOf(javaClass<String>(), javaClass<Int>(), javaClass<String>(), javaClass<Any>(), javaClass<String>(), javaClass<Any>(), javaClass<Boolean>())
 
         override fun getColumnCount() = columns.size()
 
