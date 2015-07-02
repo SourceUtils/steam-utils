@@ -9,6 +9,7 @@ import com.timepath.steam.io.storage.ACF
 import com.timepath.steam.io.storage.VPK
 import com.timepath.vfs.SimpleVFile
 import com.timepath.vfs.provider.ExtendedVFile
+import com.timepath.with
 import org.jdesktop.swingx.JXTreeTable
 import org.jdesktop.swingx.treetable.AbstractTreeTableModel
 import java.awt.*
@@ -21,41 +22,36 @@ import java.util.logging.Level
 import java.util.logging.Logger
 import javax.swing.*
 import kotlin.platform.platformStatic
-import kotlin.properties.Delegates
 
 public class ArchiveExplorer : JPanel() {
-    protected val archives: MutableList<SimpleVFile> = LinkedList()
     protected var tableModel: ArchiveTreeTableModel? = null
-    protected var popupMenu: JPopupMenu? = null
-    protected var extractMenuItem: JMenuItem by Delegates.notNull()
-    protected var treeTable: JXTreeTable? = null
-    public var menuBar: JMenuBar? = null
-        protected set
+    protected val archives: MutableList<SimpleVFile> = LinkedList()
+    protected val popupMenu: JPopupMenu
+    protected val extractMenuItem: JMenuItem
+    protected val treeTable: JXTreeTable
+    public val menuBar: JMenuBar
 
     protected fun addArchive(a: SimpleVFile) {
         archives.add(a)
         tableModel = ArchiveTreeTableModel(archives)
-        val table = treeTable!!
+        val table = treeTable
         table.setTreeTableModel(tableModel)
         // hide the last few columns
-        for (i in 0..2) {
+        repeat(3) {
             table.getColumnExt(4).setVisible(false)
         }
     }
 
     throws(IOException::class)
     protected fun load(f: File) {
-        val ext = f.name.substringAfterLast('.')
-        val a: ExtendedVFile?
-        when (ext) {
-            "gcf" -> a = GCF(f)
-            "vpk" -> a = VPK.loadArchive(f)
+        when (f.name.substringAfterLast('.')) {
+            "gcf" -> GCF(f)
+            "vpk" -> VPK.loadArchive(f)
             else -> {
                 LOG.log(Level.WARNING, "Unrecognised archive: {0}", f)
                 return
             }
-        }
-        addArchive(a!!)
+        }?.let { addArchive(it) }
     }
 
     protected fun search(search: String) {
@@ -87,142 +83,88 @@ public class ArchiveExplorer : JPanel() {
                 }
             }
 
-            override fun done() {
-                JOptionPane.showMessageDialog(this@ArchiveExplorer, "Done")
-            }
+            override fun done() = JOptionPane.showMessageDialog(this@ArchiveExplorer, "Done")
         }.execute()
     }
 
     init {
         setLayout(BorderLayout())
-        menuBar = object : JMenuBar() {
-            init {
-                add(object : JMenu("File") {
-                    init {
-                        setMnemonic('F')
-                        add(object : JMenuItem("Open") {
-                            init {
-                                setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_MASK))
-                                addActionListener(object : ActionListener {
-                                    override fun actionPerformed(evt: ActionEvent) {
-                                        open()
-                                    }
-                                })
-                            }
-                        })
-                        add(object : JMenuItem("Mount TF2") {
-                            init {
-                                addActionListener(object : ActionListener {
-                                    override fun actionPerformed(evt: ActionEvent) {
-                                        mount(440)
-                                    }
-                                })
-                            }
-                        })
-                    }
+        menuBar = JMenuBar() with {
+            add(JMenu("File") with {
+                setMnemonic('F')
+                add(JMenuItem("Open") with {
+                    setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_MASK))
+                    addActionListener { open() }
                 })
-            }
-        }
-        popupMenu = object : JPopupMenu() {
-            init {
-                extractMenuItem = object : JMenuItem("Extract") {
-                    init {
-                        addActionListener(object : ActionListener {
-                            override fun actionPerformed(evt: ActionEvent) {
-                                extract(selected)
-                            }
-                        })
-                    }
-                }
-                add(extractMenuItem)
-                add(object : JMenuItem("Properties") {
-                    init {
-                        addActionListener(object : ActionListener {
-                            override fun actionPerformed(evt: ActionEvent) {
-                                properties(selected)
-                            }
-                        })
-                    }
+                add(JMenuItem("Mount TF2") with {
+                    addActionListener { mount(440) }
                 })
-            }
+            })
         }
-        object : JPanel(BorderLayout()) {
-            init {
-                add(object : JPanel(BorderLayout()) {
-                    init {
-                        val field: JTextField
-                        field = object : JTextField() {
-                            init {
-                                addActionListener(object : ActionListener {
-                                    override fun actionPerformed(evt: ActionEvent) {
-                                        search(getText())
-                                    }
-                                })
-                            }
+        extractMenuItem = JMenuItem("Extract") with {
+            addActionListener { extract(selected) }
+        }
+        popupMenu = JPopupMenu() with {
+            add(extractMenuItem)
+            add(JMenuItem("Properties") with {
+                addActionListener { properties(selected) }
+            })
+        }
+        treeTable = JXTreeTable() with {
+            setLargeModel(true)
+            setColumnControlVisible(true)
+            setHorizontalScrollEnabled(true)
+            setAutoCreateRowSorter(true)
+            setFillsViewportHeight(true)
+            getColumnModel().getSelectionModel().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
+            addMouseListener(object : MouseAdapter() {
+                override fun mouseClicked(evt: MouseEvent) = tableClicked(evt)
+            })
+            val self = this
+            addKeyListener(object : KeyAdapter() {
+                override fun keyPressed(evt: KeyEvent) {
+                    val selectedRow = self.getSelectedRow()
+                    val selection = self.getSelectionModel()
+                    when (evt.getKeyCode()) {
+                        KeyEvent.VK_RIGHT -> {
+                            self.expandRow(selectedRow)
+                            selection.setSelectionInterval(selectedRow + 1, selectedRow + 1)
                         }
-                        add(field, BorderLayout.CENTER)
-                        add(object : JButton("Search") {
-                            init {
-                                addActionListener(object : ActionListener {
-                                    override fun actionPerformed(evt: ActionEvent) {
-                                        search(field.getText())
-                                    }
-                                })
-                            }
-                        }, BorderLayout.EAST)
-                    }
-                }, BorderLayout.NORTH)
-                treeTable = object : JXTreeTable() {
-                    init {
-                        setLargeModel(true)
-                        setColumnControlVisible(true)
-                        setHorizontalScrollEnabled(true)
-                        setAutoCreateRowSorter(true)
-                        setFillsViewportHeight(true)
-                        getColumnModel().getSelectionModel().setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
-                        addMouseListener(object : MouseAdapter() {
-                            override fun mouseClicked(evt: MouseEvent) {
-                                tableClicked(evt)
-                            }
-                        })
-                        val self = this
-                        addKeyListener(object : KeyAdapter() {
-                            override fun keyPressed(evt: KeyEvent) {
-                                val selectedRow = self.getSelectedRow()
-                                val selection = self.getSelectionModel()
-                                when (evt.getKeyCode()) {
-                                    KeyEvent.VK_RIGHT -> {
-                                        self.expandRow(selectedRow)
-                                        selection.setSelectionInterval(selectedRow + 1, selectedRow + 1)
-                                    }
-                                    KeyEvent.VK_LEFT -> if (self.isExpanded(selectedRow)) {
-                                        self.collapseRow(selectedRow)
-                                    } else {
-                                        // find last deepest node above this one
-                                        val pathForRow = self.getPathForRow(selectedRow)
-                                        val parentPath = pathForRow.getParentPath()
-                                        val currentDepth = pathForRow.getPathCount()
-                                        run {
-                                            var i = selectedRow
-                                            while (i >= 0) {
-                                                selection.setSelectionInterval(i, i)
-                                                val pathForPrevious = self.getPathForRow(i)
-                                                if (pathForPrevious.getPathCount() > currentDepth) break
-                                                if (pathForPrevious == parentPath) break
-                                                i--
-                                            }
-                                        }
-                                    }
+                        KeyEvent.VK_LEFT -> if (self.isExpanded(selectedRow)) {
+                            self.collapseRow(selectedRow)
+                        } else {
+                            // find last deepest node above this one
+                            val pathForRow = self.getPathForRow(selectedRow)
+                            val parentPath = pathForRow.getParentPath()
+                            val currentDepth = pathForRow.getPathCount()
+                            run {
+                                var i = selectedRow
+                                while (i >= 0) {
+                                    selection.setSelectionInterval(i, i)
+                                    val pathForPrevious = self.getPathForRow(i)
+                                    if (pathForPrevious.getPathCount() > currentDepth) break
+                                    if (pathForPrevious == parentPath) break
+                                    i--
                                 }
                             }
-                        })
+                        }
                     }
                 }
-                add(JScrollPane(treeTable), BorderLayout.CENTER)
-            }
-        }.let {
-            this.add(it, BorderLayout.CENTER)
+            })
         }
+        val content = JPanel(BorderLayout()).with {
+            add(JPanel(BorderLayout()) with {
+                val field = JTextField() with {
+                    addActionListener { search(getText()) }
+                }
+                add(field, BorderLayout.CENTER)
+                add(JButton("Search") with {
+                    addActionListener { search(field.getText()) }
+                }, BorderLayout.EAST)
+            }, BorderLayout.NORTH)
+            add(JScrollPane(treeTable), BorderLayout.CENTER)
+        }
+        add(content, BorderLayout.CENTER)
     }
 
     /**
@@ -230,7 +172,7 @@ public class ArchiveExplorer : JPanel() {
      */
     protected val selected: List<SimpleVFile> get() {
         val ret = LinkedList<SimpleVFile>()
-        for (treePath in treeTable!!.getTreeSelectionModel().getSelectionPaths()) {
+        for (treePath in treeTable.getTreeSelectionModel().getSelectionPaths()) {
             val lastPathComponent = treePath.getLastPathComponent()
             if (lastPathComponent is SimpleVFile) {
                 ret.addFirst(lastPathComponent)
@@ -251,15 +193,16 @@ public class ArchiveExplorer : JPanel() {
 
     protected fun open() {
         try {
-            val fs = NativeFileChooser().setParent(getFrame(this)).setTitle("Open archive").setDirectory(SteamUtils.getSteamApps()).setMultiSelectionEnabled(true).addFilter(BaseFileChooser.ExtensionFilter("VPK directory files", "_dir.vpk")).addFilter(BaseFileChooser.ExtensionFilter("VPK files", ".vpk")).addFilter(BaseFileChooser.ExtensionFilter("GCF files", ".gcf")).choose()
-            if (fs == null) {
-                return
-            }
+            val fs = NativeFileChooser()
+                    .setParent(getFrame(this))
+                    .setTitle("Open archive")
+                    .setDirectory(SteamUtils.getSteamApps())
+                    .setMultiSelectionEnabled(true)
+                    .addFilter(BaseFileChooser.ExtensionFilter("VPK directory files", "_dir.vpk"))
+                    .addFilter(BaseFileChooser.ExtensionFilter("VPK files", ".vpk"))
+                    .addFilter(BaseFileChooser.ExtensionFilter("GCF files", ".gcf"))
+                    .choose() ?: return
             for (f in fs) {
-                if (f == null) {
-                    LOG.warning("File is null")
-                    return
-                }
                 load(f)
             }
         } catch (ex: IOException) {
@@ -270,10 +213,13 @@ public class ArchiveExplorer : JPanel() {
 
     protected fun extract(items: List<SimpleVFile>) {
         try {
-            val outs = NativeFileChooser().setParent(getFrame(this)).setTitle("Select extraction directory").setMultiSelectionEnabled(false).setDialogType(BaseFileChooser.DialogType.OPEN_DIALOG).setFileMode(BaseFileChooser.FileMode.DIRECTORIES_ONLY).choose()
-            if (outs == null) {
-                return
-            }
+            val outs = NativeFileChooser()
+                    .setParent(getFrame(this))
+                    .setTitle("Select extraction directory")
+                    .setMultiSelectionEnabled(false)
+                    .setDialogType(BaseFileChooser.DialogType.OPEN_DIALOG)
+                    .setFileMode(BaseFileChooser.FileMode.DIRECTORIES_ONLY)
+                    .choose() ?: return
             val out = outs[0]
             for (e in items) {
                 try {
@@ -281,13 +227,11 @@ public class ArchiveExplorer : JPanel() {
                 } catch (ex: IOException) {
                     LOG.log(Level.SEVERE, null, ex)
                 }
-
             }
             LOG.info("Done")
         } catch (ex: IOException) {
             LOG.log(Level.SEVERE, null, ex)
         }
-
     }
 
     protected fun open(e: SimpleVFile) {
@@ -310,16 +254,16 @@ public class ArchiveExplorer : JPanel() {
     protected fun tableClicked(evt: MouseEvent) {
         val selected = selected
         if (selected.isEmpty()) return
-        val table = treeTable!!
+        val table = treeTable
         if (SwingUtilities.isRightMouseButton(evt)) {
             val p = evt.getPoint()
             val rowNumber = table.rowAtPoint(p)
             val model = table.getSelectionModel()
             model.setSelectionInterval(rowNumber, rowNumber)
             extractMenuItem.setEnabled(true)
-            popupMenu!!.show(table, evt.getX(), evt.getY())
+            popupMenu.show(table, evt.getX(), evt.getY())
         } else if (SwingUtilities.isLeftMouseButton(evt) && (evt.getClickCount() >= 2)) {
-            val file = selected[0]
+            val file = selected.first()
             if (file.isDirectory) {
                 val path = table.getPathForLocation(evt.getX(), evt.getY())
                 if (table.isExpanded(path)) {
@@ -357,7 +301,6 @@ public class ArchiveExplorer : JPanel() {
         } catch (ex: IOException) {
             LOG.log(Level.SEVERE, null, ex)
         }
-
     }
 
     private inner class ArchiveTreeTableModel(
@@ -373,7 +316,7 @@ public class ArchiveExplorer : JPanel() {
             node !is SimpleVFile -> null
             column == 0 -> node
             column == 1 -> node.length
-            column == 2 -> node.name.substringBeforeLast('.')
+            column == 2 -> node.name.substringAfterLast('.')
             column == 4 -> node.path
             node !is ExtendedVFile -> null
             column == 3 -> node.root
@@ -382,17 +325,11 @@ public class ArchiveExplorer : JPanel() {
             else -> null
         }
 
-        override fun getColumnClass(column: Int): Class<*> {
-            return types[column]
-        }
+        override fun getColumnClass(column: Int) = types[column]
 
-        override fun getColumnName(column: Int): String {
-            return columns[column]
-        }
+        override fun getColumnName(column: Int) = columns[column]
 
-        override fun isCellEditable(node: Any?, columnIndex: Int): Boolean {
-            return false
-        }
+        override fun isCellEditable(node: Any?, columnIndex: Int) = false
 
         override fun isLeaf(node: Any): Boolean {
             if (node is SimpleVFile) {
@@ -415,7 +352,6 @@ public class ArchiveExplorer : JPanel() {
             return archives.size()
         }
 
-        SuppressWarnings("SuspiciousMethodCalls")
         override fun getIndexOfChild(parent: Any, child: Any): Int {
             if (parent is SimpleVFile) {
                 return ArrayList(parent.list()).indexOf(child)
@@ -433,16 +369,17 @@ public class ArchiveExplorer : JPanel() {
          */
         public platformStatic fun main(args: Array<String>) {
             EventQueue.invokeLater {
-                val f = JFrame()
-                f.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)
-                f.setTitle("Archive Explorer")
-                f.setPreferredSize(Dimension(800, 500))
-                val ae = ArchiveExplorer()
-                f.setContentPane(ae)
-                f.setJMenuBar(ae.menuBar)
-                f.pack()
-                f.setLocationRelativeTo(null)
-                f.setVisible(true)
+                JFrame().with {
+                    setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE)
+                    setTitle("Archive Explorer")
+                    this.setPreferredSize(Dimension(800, 500))
+                    ArchiveExplorer().let {
+                        setContentPane(it)
+                        setJMenuBar(it.menuBar)
+                    }
+                    pack()
+                    setLocationRelativeTo(null)
+                }.setVisible(true)
             }
         }
     }
